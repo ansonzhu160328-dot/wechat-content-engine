@@ -1,18 +1,25 @@
 # wechat-content-engine
 
-一个用于生成公众号内容的 AI 内容引擎项目。
+一个面向企业内部使用的 **AI 写稿助手**，用于生成新能源行业相关公众号内容，并写入飞书草稿库。
 
-## 当前目标
+当前支持五类模板：
 
-- 抓取新闻或素材
-- 调用 AI 生成公众号文章
-- 输出标题、封面文案、视频脚本
-- 后续接入飞书草稿库
+- 行业新闻
+- 技术科普
+- 政策解读
+- 产品介绍
+- 案例分析
 
-## 当前目录结构
+---
 
-- `config/` 配置文件
-- `src/` 源代码
-- `data/` 数据与草稿缓存
-- `logs/` 运行日志
-- `scripts/` 启动脚本
+## 1. 项目结构
+
+```text
+wechat-content-engine/
+├─ src/
+│  ├─ app.py
+│  ├─ doubao_client.py
+│  └─ prompt_builder.py
+├─ requirements.txt
+├─ README.md
+└─ .gitignore

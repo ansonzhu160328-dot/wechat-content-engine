@@ -1,49 +1,370 @@
-def normalize_text(value) -> str:
+# -*- coding: utf-8 -*-
+import os
+import json
+import threading
+import traceback
+from datetime import datetime
 
-    if value is None:
-        return ""
+import requests
+from flask import Flask, request, jsonify, render_template_string
 
-    return str(value).strip()
+from prompt_builder import normalize_text
+from doubao_client import call_doubao_generate
+
+app = Flask(__name__)
+ARTICLE_HTML_CACHE = {}
+
+ARK_API_KEY = os.getenv("ARK_API_KEY", "51271bc4-601f-4f80-93ba-3725a971b0c1")
+ARK_BASE_URL = os.getenv("ARK_BASE_URL", "https://ark.cn-beijing.volces.com/api/v3")
+ARK_MODEL = os.getenv("ARK_MODEL", "doubao-1-5-pro-32k-250115")
+
+FEISHU_APP_ID = os.getenv("FEISHU_APP_ID", "cli_a922531157ba9bcb")
+FEISHU_APP_SECRET = os.getenv("FEISHU_APP_SECRET", "xmubydlGmOkSg2J0XjJybbNf0fHXrNrS")
+
+BITABLE_APP_TOKEN = os.getenv("BITABLE_APP_TOKEN", "UHI4b4izma1E5SsYGP9cQ9KHnXz")
+BITABLE_TABLE_ID = os.getenv("BITABLE_TABLE_ID", "tblFUuB0ICxpylvM")
+
+HOST = "0.0.0.0"
+PORT = 7001
 
 
-def build_prompt(form_data: dict) -> str:
+def log(*args):
+    print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"), *args, flush=True)
 
-    template = normalize_text(form_data.get("template"))
 
-    requirement = normalize_text(form_data.get("requirement"))
+def get_feishu_tenant_access_token() -> str:
+    url = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal"
+    payload = {
+        "app_id": FEISHU_APP_ID,
+        "app_secret": FEISHU_APP_SECRET
+    }
+    resp = requests.post(url, json=payload, timeout=30)
+    resp.raise_for_status()
+    data = resp.json()
+    if data.get("code") != 0:
+        raise Exception(f"获取 tenant_access_token 失败: {data}")
+    return data["tenant_access_token"]
 
-    content1 = normalize_text(form_data.get("content1"))
 
-    content2 = normalize_text(form_data.get("content2"))
+def write_to_bitable(form_data: dict, article_data: dict) -> dict:
+    token = get_feishu_tenant_access_token()
 
-    content3 = normalize_text(form_data.get("content3"))
+    url = f"https://open.feishu.cn/open-apis/bitable/v1/apps/{BITABLE_APP_TOKEN}/tables/{BITABLE_TABLE_ID}/records"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
 
-    materials = []
+    editor_notes = []
+    if form_data.get("template"):
+        editor_notes.append(f"模板：{form_data['template']}")
+    if form_data.get("requirement"):
+        editor_notes.append(f"要求：{form_data['requirement']}")
+    if form_data.get("content1"):
+        editor_notes.append(f"素材1：{form_data['content1']}")
+    if form_data.get("content2"):
+        editor_notes.append(f"素材2：{form_data['content2']}")
+    if form_data.get("content3"):
+        editor_notes.append(f"素材3：{form_data['content3']}")
 
-    if content1:
-        materials.append(content1)
+    fields = {
+        "news_title_raw": article_data["title"],
+        "article_body": article_data["body"],
+        "editor_notes": "\n".join(editor_notes),
+    }
 
-    if content2:
-        materials.append(content2)
+    payload = {"fields": fields}
 
-    if content3:
-        materials.append(content3)
+    log("开始写入飞书多维表格...")
+    resp = requests.post(url, headers=headers, json=payload, timeout=60)
+    resp.raise_for_status()
+    data = resp.json()
+    if data.get("code") != 0:
+        raise Exception(f"写入多维表格失败: {data}")
 
-    materials_text = "\n".join(materials)
+    log("飞书多维表格写入成功")
+    return data
 
-    prompt = f"""
-你是一名新能源行业公众号写作助手。
 
-文章类型：
-{template}
+def background_generate_job(form_data: dict):
+    try:
+        log("后台任务启动，form_data =", json.dumps(form_data, ensure_ascii=False))
 
-写作要求：
-{requirement}
+        article_data = call_doubao_generate(
+            form_data=form_data,
+            ark_api_key=ARK_API_KEY,
+            ark_base_url=ARK_BASE_URL,
+            ark_model=ARK_MODEL,
+        )
+        log("文章生成成功，标题 =", article_data["title"])
 
-素材：
-{materials_text}
+        write_result = write_to_bitable(form_data, article_data)
+        log("写表成功：", json.dumps(write_result, ensure_ascii=False))
 
-请写一篇公众号文章。
+        record_id = (
+            write_result.get("data", {})
+            .get("record", {})
+            .get("record_id", "")
+        )
+
+        if record_id and article_data.get("html"):
+            ARTICLE_HTML_CACHE[record_id] = article_data["html"]
+            log(f"HTML预览已缓存，record_id = {record_id}")
+            log(f"预览地址：http://127.0.0.1:{PORT}/article/{record_id}")
+
+    except Exception as e:
+        log("后台任务失败：", repr(e))
+        traceback.print_exc()
+
+
+PAGE_HTML = """
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>AI写稿助手</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+            background: #f5f7fb;
+            color: #1f2329;
+        }
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 18px;
+            box-shadow: 0 8px 24px rgba(15, 32, 56, 0.08);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #1f5eff, #1746c8);
+            color: white;
+            padding: 28px 32px 24px;
+        }
+        .header h1 {
+            margin: 0 0 10px;
+            font-size: 30px;
+        }
+        .header p {
+            margin: 0;
+            font-size: 15px;
+            opacity: 0.95;
+        }
+        .content {
+            padding: 28px 32px 36px;
+        }
+        .section-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin: 0 0 20px;
+        }
+        .form-group {
+            margin-bottom: 22px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 15px;
+        }
+        input[type="text"], select, textarea {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid #d0d7e2;
+            border-radius: 12px;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.2s ease;
+            background: #fff;
+        }
+        input[type="text"]:focus, select:focus, textarea:focus {
+            border-color: #1f5eff;
+            box-shadow: 0 0 0 3px rgba(31, 94, 255, 0.10);
+        }
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+            line-height: 1.6;
+        }
+        .hint {
+            color: #6b7785;
+            font-size: 13px;
+            margin-top: 6px;
+        }
+        .actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+        }
+        button, .btn-secondary {
+            border: none;
+            border-radius: 12px;
+            padding: 14px 22px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        button {
+            background: #1f5eff;
+            color: white;
+        }
+        button:hover {
+            background: #184fd9;
+        }
+        .btn-secondary {
+            background: #edf2ff;
+            color: #1f5eff;
+        }
+        .success-box {
+            margin-top: 24px;
+            padding: 18px 20px;
+            background: #ecfdf3;
+            border: 1px solid #b7ebc6;
+            border-radius: 14px;
+            color: #146c43;
+        }
+        .footer-note {
+            margin-top: 24px;
+            color: #6b7785;
+            font-size: 13px;
+            line-height: 1.7;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AI写稿助手</h1>
+            <p>上传素材或粘贴需求，快速生成公众号草稿，适用于新能源、充电桩、重卡充电、电力市场等内容场景。</p>
+        </div>
+
+        <div class="content">
+            <div class="section-title">填写写稿需求</div>
+
+            <form method="post" action="/submit_generate">
+                <div class="form-group">
+                    <label for="template">文章模板</label>
+                    <select name="template" id="template">
+                        <option value="行业新闻">行业新闻</option>
+                        <option value="技术科普">技术科普</option>
+                        <option value="政策解读">政策解读</option>
+                        <option value="产品介绍">产品介绍</option>
+                        <option value="案例分析">案例分析</option>
+                    </select>
+                    <div class="hint">当前按五类模板分别生成，后续可继续扩展。</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="requirement">写作要求</label>
+                    <textarea name="requirement" id="requirement" placeholder="例如：控制在800字左右，语气专业但不生硬，适合公众号阅读，结尾给出行业启示。"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="content1">素材正文（第一部分）</label>
+                    <textarea name="content1" id="content1" placeholder="请粘贴主要素材，例如行业新闻、政策内容、项目背景等。"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="content2">素材正文（第二部分）</label>
+                    <textarea name="content2" id="content2" placeholder="请粘贴补充素材，例如专家观点、市场数据、补充背景等。"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="content3">素材正文（第三部分）</label>
+                    <textarea name="content3" id="content3" placeholder="请粘贴补充要求，例如希望强调的观点、结尾方向、行业启示等。"></textarea>
+                </div>
+
+                <div class="actions">
+                    <button type="submit">生成文章</button>
+                    <a class="btn-secondary" href="/">重置</a>
+                </div>
+            </form>
+
+            {% if success %}
+            <div class="success-box">
+                <strong>已提交成功。</strong><br>
+                系统正在后台生成文章，并写入飞书草稿库。请稍后到草稿库中查看结果。
+            </div>
+            {% endif %}
+
+            <div class="footer-note">
+                提示：当前版本已切到“五类模板 + JSON结构化输出”模式。后续再往公众号 HTML 排版方向升级。
+            </div>
+        </div>
+    </div>
+</body>
+</html>
 """
 
-    return prompt
+
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({
+        "ok": True,
+        "message": "ai_writer_server is running"
+    })
+
+
+@app.route("/", methods=["GET"])
+def index():
+    return render_template_string(PAGE_HTML, success=False)
+
+
+@app.route("/submit_generate", methods=["POST"])
+def submit_generate():
+    try:
+        form_data = {
+            "template": normalize_text(request.form.get("template", "行业新闻")),
+            "requirement": normalize_text(request.form.get("requirement", "")),
+            "content1": normalize_text(request.form.get("content1", "")),
+            "content2": normalize_text(request.form.get("content2", "")),
+            "content3": normalize_text(request.form.get("content3", "")),
+        }
+
+        log("收到网页表单提交：", json.dumps(form_data, ensure_ascii=False))
+
+        t = threading.Thread(
+            target=background_generate_job,
+            args=(form_data,),
+            daemon=True
+        )
+        t.start()
+
+        return render_template_string(PAGE_HTML, success=True)
+
+    except Exception as e:
+        log("submit_generate 异常：", repr(e))
+        traceback.print_exc()
+        return f"提交失败：{str(e)}", 500
+
+
+@app.route("/article/<record_id>", methods=["GET"])
+def article_preview(record_id):
+    html = ARTICLE_HTML_CACHE.get(record_id)
+    if not html:
+        return "未找到文章预览内容，请先生成文章，或服务已重启导致缓存丢失。", 404
+    return html
+
+
+@app.route("/feishu_callback", methods=["POST"])
+def feishu_callback():
+    payload = request.get_json(force=True, silent=True) or {}
+    log("收到 /feishu_callback 请求：", json.dumps(payload, ensure_ascii=False))
+    return jsonify({
+        "toast": {
+            "type": "success",
+            "content": "已收到请求。当前主线建议使用 open_url 网页入口。"
+        }
+    })
+
+
+if __name__ == "__main__":
+    log(f"启动 Flask 服务：http://{HOST}:{PORT}")
+    app.run(host=HOST, port=PORT, debug=False)

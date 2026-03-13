@@ -1,0 +1,6 @@
+app:
+  name: wechat-content-engine
+
+ai:
+  model: doubao
+  temperature: 0.7

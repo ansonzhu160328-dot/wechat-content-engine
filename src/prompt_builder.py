@@ -1,7 +1,119 @@
+# -*- coding: utf-8 -*-
+
 def normalize_text(value) -> str:
     if value is None:
         return ""
     return str(value).strip()
+
+
+def article_json_schema_for_template(template: str) -> str:
+    if template == "行业新闻":
+        return """
+{
+  "title": "标题",
+  "intro": "导语",
+  "event_summary": "事件概述",
+  "industry_background": "行业背景",
+  "impact_analysis": "影响分析",
+  "industry_insight": "行业启示"
+}
+""".strip()
+
+    if template == "技术科普":
+        return """
+{
+  "title": "标题",
+  "intro": "导语",
+  "section1": {
+    "title": "模块1标题",
+    "item1": {
+      "subtitle": "小标题1",
+      "body": "正文1",
+      "image_hint": "图片建议1"
+    },
+    "item2": {
+      "subtitle": "小标题2",
+      "body": "正文2",
+      "image_hint": "图片建议2"
+    }
+  },
+  "section2": {
+    "title": "模块2标题",
+    "item1": {
+      "subtitle": "小标题1",
+      "body": "正文1",
+      "image_hint": "图片建议1"
+    },
+    "item2": {
+      "subtitle": "小标题2",
+      "body": "正文2",
+      "image_hint": "图片建议2"
+    }
+  },
+  "section3": {
+    "title": "模块3标题",
+    "item1": {
+      "subtitle": "小标题1",
+      "body": "正文1",
+      "image_hint": "图片建议1"
+    }
+  },
+  "summary": "总结"
+}
+""".strip()
+
+    if template == "政策解读":
+        return """
+{
+  "title": "标题",
+  "intro": "导语",
+  "policy_background": "政策背景",
+  "core_content": "政策核心内容",
+  "industry_impact": "对行业的影响",
+  "advice": "对企业或用户的建议",
+  "summary": "总结"
+}
+""".strip()
+
+    if template == "产品介绍":
+        return """
+{
+  "title": "标题",
+  "intro": "导语",
+  "product_positioning": "产品背景或定位",
+  "core_highlights": [
+    "亮点1",
+    "亮点2",
+    "亮点3"
+  ],
+  "application_scenarios": "应用场景",
+  "customer_value": "客户价值",
+  "summary": "总结"
+}
+""".strip()
+
+    if template == "案例分析":
+        return """
+{
+  "title": "标题",
+  "intro": "导语",
+  "project_background": "项目背景",
+  "pain_points": "项目难点或痛点",
+  "solution": "解决方案",
+  "result": "实施效果",
+  "insight": "总结与启示"
+}
+""".strip()
+
+    return """
+{
+  "title": "标题",
+  "intro": "导语",
+  "body": "正文",
+  "summary": "总结"
+}
+""".strip()
+
 
 def build_prompt(form_data: dict) -> str:
     template = normalize_text(form_data.get("template", "行业新闻"))
@@ -110,4 +222,3 @@ def build_prompt(form_data: dict) -> str:
 """.strip()
 
     return prompt
-

@@ -7,6 +7,8 @@ import threading
 import traceback
 from datetime import datetime
 import yaml
+from prompt_builder import build_prompt
+from doubao_client import call_doubao_generate
 
 import requests
 from flask import Flask, request, jsonify, render_template_string

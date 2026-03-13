@@ -6,12 +6,27 @@ import re
 import threading
 import traceback
 from datetime import datetime
+import yaml
 
 import requests
 from flask import Flask, request, jsonify, render_template_string
 
 app = Flask(__name__)
 ARTICLE_HTML_CACHE = {}
+def load_config():
+    config_path = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)),
+        "config",
+        "config.yaml"
+    )
+
+    with open(config_path, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+config = load_config()
+DOUBAO_API_KEY = config["doubao"]["api_key"]
+DOUBAO_BASE_URL = config["doubao"]["base_url"]
+DOUBAO_MODEL = config["doubao"]["model"]
 # =========================
 # 配置区
 # =========================
@@ -825,13 +840,13 @@ def split_title_and_body(content: str, form_data: dict) -> tuple[str, str]:
 
 def call_doubao_generate(form_data: dict) -> dict:
     prompt = build_prompt(form_data)
-    url = f"{ARK_BASE_URL}/chat/completions"
+    url = f"{DOUBAO_BASE_URL}/chat/completions"
     headers = {
-        "Authorization": f"Bearer {ARK_API_KEY}",
+        "Authorization": f"Bearer {DOUBAO_API_KEY}",
         "Content-Type": "application/json"
     }
     payload = {
-        "model": ARK_MODEL,
+        "model": DOUBAO_MODEL,
         "messages": [
             {
                 "role": "system",

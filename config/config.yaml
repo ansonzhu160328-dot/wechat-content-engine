@@ -1,0 +1,23 @@
+app:
+  name: wechat-content-engine
+  debug: true
+  host: 0.0.0.0
+  port: 5000
+
+doubao:
+  api_key: "YOUR_API_KEY_HERE"
+  base_url: "https://ark.cn-beijing.volces.com/api/v3"
+  model: "YOUR_MODEL_HERE"
+  timeout: 60
+  temperature: 0.6
+  max_tokens: 2000
+
+feishu:
+  app_id: "YOUR_FEISHU_APP_ID"
+  app_secret: "YOUR_FEISHU_APP_SECRET"
+  app_token: "YOUR_BITABLE_APP_TOKEN"
+  table_id: "YOUR_TABLE_ID"
+
+paths:
+  logs_dir: "logs"
+  data_dir: "data"

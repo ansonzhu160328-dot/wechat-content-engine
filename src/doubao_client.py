@@ -1,3 +1,25 @@
+import requests
+import yaml
+import os
+
+from prompt_builder import build_prompt
+
+def load_config():
+    config_path = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)),
+        "config",
+        "config.yaml"
+    )
+
+    with open(config_path, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+config = load_config()
+
+DOUBAO_API_KEY = config["doubao"]["api_key"]
+DOUBAO_BASE_URL = config["doubao"]["base_url"]
+DOUBAO_MODEL = config["doubao"]["model"]
+
 def call_doubao_generate(form_data: dict) -> dict:
     prompt = build_prompt(form_data)
     url = f"{DOUBAO_BASE_URL}/chat/completions"

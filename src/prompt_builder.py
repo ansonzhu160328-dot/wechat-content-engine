@@ -1,3 +1,8 @@
+def normalize_text(value) -> str:
+    if value is None:
+        return ""
+    return str(value).strip()
+
 def build_prompt(form_data: dict) -> str:
     template = normalize_text(form_data.get("template", "行业新闻"))
     requirement = normalize_text(form_data.get("requirement", ""))

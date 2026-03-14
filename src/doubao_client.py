@@ -491,10 +491,10 @@ def render_tech_pop_html(article_json: dict) -> str:
            
 
                 const page = document.querySelector(".page");
-                if (!page) {
+                if (!page) {{
                     console.log("[copy-publish] page node not found");
                     return "";
-                }
+                }}
 
                 const currentTitle = getNodeText('[data-field="title"]', page);
                 if (currentTitle) {
@@ -559,7 +559,7 @@ def render_tech_pop_html(article_json: dict) -> str:
                 return publishText;
             }
 
-            function fallbackCopyText(text) {
+            function fallbackCopyText(text) {{
                 const textarea = document.createElement("textarea");
                 textarea.value = text;
                 textarea.setAttribute("readonly", "readonly");
@@ -570,15 +570,15 @@ def render_tech_pop_html(article_json: dict) -> str:
                 textarea.select();
 
                 let copied = false;
-                try {
+                try {{
                     copied = document.execCommand("copy");
-                } catch (err) {
+                }} catch (err) {{
                     copied = false;
-                }
+                }}
 
                 document.body.removeChild(textarea);
                 return copied;
-            }
+            }}
 
             async function copyPublishText() {
                 console.log("[copy-publish] copy button clicked");

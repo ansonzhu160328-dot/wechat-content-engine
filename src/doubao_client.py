@@ -474,6 +474,7 @@ def render_tech_pop_html(article_json: dict) -> str:
             <div class="action-bar">
                 <button type="button" class="copy-btn" id="copyPublishBtn">复制发布稿</button>
             </div>
+
             <div class="article-title" contenteditable="true" data-field="title">{title}</div>
             {intro_html}
             {''.join(section_html_list)}

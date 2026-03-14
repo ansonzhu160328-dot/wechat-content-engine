@@ -292,7 +292,7 @@ def render_tech_pop_html(article_json: dict) -> str:
     intro = normalize_text(article_json.get("intro"))
     summary = normalize_text(article_json.get("summary"))
 
-    def render_item(item: dict) -> str:
+    def render_item(item: dict, section_key: str, item_key: str) -> str:
         if not isinstance(item, dict):
             return ""
 
@@ -303,13 +303,19 @@ def render_tech_pop_html(article_json: dict) -> str:
         parts = []
 
         if subtitle:
-            parts.append(f'<div class="sub-title">{subtitle}</div>')
+            parts.append(
+                f'<div class="sub-title" contenteditable="true" data-section="{section_key}" data-item="{item_key}" data-field="subtitle">{subtitle}</div>'
+            )
 
         if body:
-            parts.append(f'<div class="paragraph">{body}</div>')
+            parts.append(
+                f'<div class="paragraph" contenteditable="true" data-section="{section_key}" data-item="{item_key}" data-field="body">{body}</div>'
+            )
 
         if image_hint:
-            parts.append(f'<div class="image-hint">配图建议：{image_hint}</div>')
+            parts.append(
+                f'<div class="image-hint" contenteditable="true" data-section="{section_key}" data-item="{item_key}" data-field="image_hint">配图建议：{image_hint}</div>'
+            )
 
         return "\n".join(parts)
 
@@ -327,24 +333,29 @@ def render_tech_pop_html(article_json: dict) -> str:
         block_parts = []
 
         if sec_title:
-            block_parts.append(f'<div class="section-title">{sec_title}</div>')
+            block_parts.append(
+                f'<div class="section-title" contenteditable="true" data-section="{sec_key}" data-field="section_title">{sec_title}</div>'
+            )
 
-        item1_html = render_item(item1)
+        item1_html = render_item(item1, sec_key, "item1")
         if item1_html:
             block_parts.append(item1_html)
 
-        item2_html = render_item(item2)
+        item2_html = render_item(item2, sec_key, "item2")
         if item2_html:
             block_parts.append(item2_html)
 
         if block_parts:
             section_html_list.append(f'<div class="section-block">{"".join(block_parts)}</div>')
 
-    intro_html = f'<div class="intro-box">{intro}</div>' if intro else ""
+    intro_html = (
+        f'<div class="intro-box" contenteditable="true" data-field="intro">{intro}</div>'
+        if intro else ""
+    )
     summary_html = f'''
     <div class="summary-box">
         <div class="summary-title">总结</div>
-        <div class="paragraph">{summary}</div>
+        <div class="paragraph" contenteditable="true" data-field="summary">{summary}</div>
     </div>
     ''' if summary else ""
 
@@ -442,7 +453,7 @@ def render_tech_pop_html(article_json: dict) -> str:
     </head>
     <body>
         <div class="page">
-            <div class="article-title">{title}</div>
+            <div class="article-title" contenteditable="true" data-field="title">{title}</div>
             {intro_html}
             {''.join(section_html_list)}
             {summary_html}

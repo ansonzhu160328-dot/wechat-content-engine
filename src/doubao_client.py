@@ -346,7 +346,7 @@ def render_tech_pop_html(article_json: dict) -> str:
             block_parts.append(item2_html)
 
         if block_parts:
-            section_html_list.append(f'<div class="section-block">{"".join(block_parts)}</div>')
+            section_html_list.append(f'<div class="section-block" data-section="{sec_key}">{"".join(block_parts)}</div>')
 
     intro_html = (
         f'<div class="intro-box" contenteditable="true" data-field="intro">{intro}</div>'
@@ -381,6 +381,24 @@ def render_tech_pop_html(article_json: dict) -> str:
                 padding: 36px 32px 48px;
                 box-shadow: 0 6px 20px rgba(0,0,0,0.08);
                 border-radius: 12px;
+            }}
+            .action-bar {{
+                display: flex;
+                justify-content: flex-end;
+                margin-bottom: 16px;
+            }}
+            .copy-btn {{
+                border: none;
+                background: #2f7cf6;
+                color: #fff;
+                padding: 10px 16px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: bold;
+            }}
+            .copy-btn:hover {{
+                background: #2563eb;
             }}
             .article-title {{
                 font-size: 30px;
@@ -453,11 +471,103 @@ def render_tech_pop_html(article_json: dict) -> str:
     </head>
     <body>
         <div class="page">
+            <div class="action-bar">
+                <button type="button" class="copy-btn" id="copyPublishBtn">复制发布稿</button>
+            </div>
+
             <div class="article-title" contenteditable="true" data-field="title">{title}</div>
             {intro_html}
             {''.join(section_html_list)}
             {summary_html}
         </div>
+        <script>
+            function getNodeText(selector, root) {{
+                const node = (root || document).querySelector(selector);
+                return node ? node.innerText.trim() : "";
+            }}
+
+            function buildPublishText() {{
+                const lines = [];
+                const page = document.querySelector(".page");
+
+                const currentTitle = getNodeText('[data-field="title"]', page);
+                if (currentTitle) {{
+                    lines.push("标题：" + currentTitle);
+                    lines.push("");
+                }}
+
+                const currentIntro = getNodeText('[data-field="intro"]', page);
+                if (currentIntro) {{
+                    lines.push("【导语】");
+                    lines.push(currentIntro);
+                    lines.push("");
+                }}
+
+                const sectionOrder = ["section1", "section2", "section3"];
+                sectionOrder.forEach(function (sectionKey, sectionIdx) {{
+                    const section = page.querySelector('.section-block[data-section="' + sectionKey + '"]');
+                    if (!section) {{
+                        return;
+                    }}
+
+                    const sectionTitle = getNodeText('[data-field="section_title"]', section);
+                    if (sectionTitle) {{
+                        lines.push("【模块" + (sectionIdx + 1) + "】" + sectionTitle);
+                        lines.push("");
+                    }}
+
+                    const itemOrder = ["item1", "item2"];
+                    let itemCounter = 1;
+                    itemOrder.forEach(function (itemKey) {{
+                        const subtitle = getNodeText('[data-item="' + itemKey + '"][data-field="subtitle"]', section);
+                        const body = getNodeText('[data-item="' + itemKey + '"][data-field="body"]', section);
+                        const imageHintRaw = getNodeText('[data-item="' + itemKey + '"][data-field="image_hint"]', section);
+                        const imageHint = imageHintRaw.replace(/^配图建议：?\s*/, "").trim();
+
+                        if (!subtitle && !body && !imageHint) {{
+                            return;
+                        }}
+
+                        if (subtitle) {{
+                            lines.push(itemCounter + ". " + subtitle);
+                        }}
+                        if (body) {{
+                            lines.push(body);
+                        }}
+                        if (imageHint) {{
+                            lines.push("【配图建议】" + imageHint);
+                        }}
+                        lines.push("");
+                        itemCounter += 1;
+                    }});
+                }});
+
+                const currentSummary = getNodeText('[data-field="summary"]', page);
+                if (currentSummary) {{
+                    lines.push("【总结】");
+                    lines.push(currentSummary);
+                }}
+
+                return lines.join("\n").trim();
+            }}
+
+            async function copyPublishText() {{
+                const text = buildPublishText();
+                if (!text) {{
+                    alert("页面暂无可复制内容");
+                    return;
+                }}
+
+                try {{
+                    await navigator.clipboard.writeText(text);
+                    alert("已复制到剪贴板");
+                }} catch (err) {{
+                    alert("复制失败，请手动复制");
+                }}
+            }}
+
+            document.getElementById("copyPublishBtn").addEventListener("click", copyPublishText);
+        </script>
     </body>
     </html>
     """

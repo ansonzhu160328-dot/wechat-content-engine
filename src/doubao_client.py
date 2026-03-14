@@ -287,7 +287,7 @@ def format_default(article_json: dict) -> tuple[str, str]:
     return title, body
 
 
-def render_tech_pop_html(article_json: dict) -> str:
+def render_tech_pop_html(article_json: dict, record_id: str = "") -> str:
     title = normalize_text(article_json.get("title")) or "技术科普"
     intro = normalize_text(article_json.get("intro"))
     summary = normalize_text(article_json.get("summary"))
@@ -402,6 +402,20 @@ def render_tech_pop_html(article_json: dict) -> str:
             .copy-btn:hover {{
                 background: #2563eb;
             }}
+            .save-btn {{
+                border: none;
+                background: #16a34a;
+                color: #fff;
+                padding: 10px 16px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: bold;
+                margin-left: 10px;
+            }}
+            .save-btn:hover {{
+                background: #15803d;
+            }}
             .article-title {{
                 font-size: 30px;
                 font-weight: bold;
@@ -475,6 +489,7 @@ def render_tech_pop_html(article_json: dict) -> str:
         <div class="page">
             <div class="action-bar">
                 <button type="button" class="copy-btn" id="copyPublishBtn">复制发布稿</button>
+                <button type="button" class="save-btn" id="saveArticleBtn">保存修改</button>
             </div>
             <div class="article-title" contenteditable="true" data-field="title">{title}</div>
             {intro_html}
@@ -580,6 +595,62 @@ def render_tech_pop_html(article_json: dict) -> str:
                 return copied;
             }}
 
+
+            function buildEditablePayload() {{
+                const page = document.querySelector(".page");
+                const payload = {{
+                    title: getNodeText('[data-field="title"]', page),
+                    intro: getNodeText('[data-field="intro"]', page),
+                    section1: {{ title: "", item1: {{ subtitle: "", body: "", image_hint: "" }}, item2: {{ subtitle: "", body: "", image_hint: "" }} }},
+                    section2: {{ title: "", item1: {{ subtitle: "", body: "", image_hint: "" }}, item2: {{ subtitle: "", body: "", image_hint: "" }} }},
+                    section3: {{ title: "", item1: {{ subtitle: "", body: "", image_hint: "" }}, item2: {{ subtitle: "", body: "", image_hint: "" }} }},
+                    summary: getNodeText('[data-field="summary"]', page)
+                }};
+
+                ["section1", "section2", "section3"].forEach(function (sectionKey) {{
+                    const section = page.querySelector('.section-block[data-section="' + sectionKey + '"]');
+                    if (!section) {{
+                        return;
+                    }}
+
+                    payload[sectionKey].title = getNodeText('[data-field="section_title"]', section);
+
+                    ["item1", "item2"].forEach(function (itemKey) {{
+                        payload[sectionKey][itemKey].subtitle = getNodeText('[data-item="' + itemKey + '"][data-field="subtitle"]', section);
+                        payload[sectionKey][itemKey].body = getNodeText('[data-item="' + itemKey + '"][data-field="body"]', section);
+                        const hintRaw = getNodeText('[data-item="' + itemKey + '"][data-field="image_hint"]', section);
+                        payload[sectionKey][itemKey].image_hint = hintRaw.replace(/^配图建议：?\s*/, "").trim();
+                    }});
+                }});
+
+                return payload;
+            }}
+
+            async function saveArticle() {{
+                const payload = buildEditablePayload();
+                try {{
+                    const resp = await fetch("/article/{record_id}/save", {{
+                        method: "POST",
+                        headers: {{ "Content-Type": "application/json" }},
+                        body: JSON.stringify(payload)
+                    }});
+
+                    if (!resp.ok) {{
+                        throw new Error("save request failed");
+                    }}
+
+                    const data = await resp.json();
+                    if (!data.ok) {{
+                        throw new Error(data.message || "save failed");
+                    }}
+
+                    alert("保存成功");
+                }} catch (err) {{
+                    console.log("[save-article] save failed:", err);
+                    alert("保存失败，请稍后重试");
+                }}
+            }}
+
             async function copyPublishText() {{
                 console.log("[copy-publish] copy button clicked");
                 const text = buildPublishText();
@@ -610,6 +681,7 @@ def render_tech_pop_html(article_json: dict) -> str:
             }}
 
             document.getElementById("copyPublishBtn").addEventListener("click", copyPublishText);
+            document.getElementById("saveArticleBtn").addEventListener("click", saveArticle);
         </script>
     </body>
     </html>
@@ -617,14 +689,15 @@ def render_tech_pop_html(article_json: dict) -> str:
         title=title,
         intro_html=intro_html,
         section_html=section_html,
-        summary_html=summary_html
+        summary_html=summary_html,
+        record_id=record_id
     )
     return html
 
 
-def render_article_html_by_template(template: str, article_json: dict) -> str:
+def render_article_html_by_template(template: str, article_json: dict, record_id: str = "") -> str:
     if template == "技术科普":
-        return render_tech_pop_html(article_json)
+        return render_tech_pop_html(article_json, record_id=record_id)
 
     title, body = format_article_by_template(template, article_json)
     simple_html = f"""

@@ -9,13 +9,14 @@ import requests
 from flask import Flask, request, jsonify, render_template_string
 
 from prompt_builder import normalize_text
-from doubao_client import call_doubao_generate
+from doubao_client import call_doubao_generate, format_tech_pop, render_tech_pop_html
 from config_loader import load_config
 
 CONFIG = load_config()
 
 app = Flask(__name__)
 ARTICLE_HTML_CACHE = {}
+ARTICLE_META_CACHE = {}
 
 # =========================
 # 从 config.yaml 读取配置
@@ -101,6 +102,36 @@ def write_to_bitable(form_data: dict, article_data: dict) -> dict:
     return data
 
 
+
+
+def update_bitable_record(record_id: str, title: str, body: str) -> dict:
+    token = get_feishu_tenant_access_token()
+
+    url = (
+        f"https://open.feishu.cn/open-apis/bitable/v1/apps/{BITABLE_APP_TOKEN}"
+        f"/tables/{BITABLE_TABLE_ID}/records/{record_id}"
+    )
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "fields": {
+            "news_title_raw": title,
+            "article_body": body,
+        }
+    }
+
+    log(f"开始更新飞书多维表格记录，record_id = {record_id}")
+    resp = requests.patch(url, headers=headers, json=payload, timeout=60)
+    resp.raise_for_status()
+    data = resp.json()
+    if data.get("code") != 0:
+        raise Exception(f"更新多维表格失败: {data}")
+
+    log("飞书多维表格更新成功")
+    return data
+
 def background_generate_job(form_data: dict):
     try:
         log("后台任务启动，form_data =", json.dumps(form_data, ensure_ascii=False))
@@ -123,7 +154,11 @@ def background_generate_job(form_data: dict):
         )
 
         if record_id and article_data.get("html"):
-            ARTICLE_HTML_CACHE[record_id] = article_data["html"]
+            cached_html = article_data["html"].replace("/article//save", f"/article/{record_id}/save")
+            ARTICLE_HTML_CACHE[record_id] = cached_html
+            ARTICLE_META_CACHE[record_id] = {
+                "template": normalize_text(form_data.get("template", "")),
+            }
             log(f"HTML预览已缓存，record_id = {record_id}")
             log(f"预览地址：http://127.0.0.1:{PORT}/article/{record_id}")
 
@@ -366,6 +401,37 @@ def article_preview(record_id):
     if not html:
         return "未找到文章预览内容，请先生成文章，或服务已重启导致缓存丢失。", 404
     return html
+
+
+@app.route("/article/<record_id>/save", methods=["POST"])
+def save_tech_pop_article(record_id):
+    try:
+        payload = request.get_json(force=True, silent=True) or {}
+
+        if record_id not in ARTICLE_HTML_CACHE:
+            return jsonify({"ok": False, "message": "未找到文章记录"}), 404
+
+        template = normalize_text(ARTICLE_META_CACHE.get(record_id, {}).get("template", "技术科普"))
+
+        if template != "技术科普":
+            return jsonify({"ok": False, "message": "仅支持技术科普模板保存"}), 400
+
+        if not isinstance(payload, dict):
+            return jsonify({"ok": False, "message": "请求体格式错误"}), 400
+
+        title, body = format_tech_pop(payload)
+        html = render_tech_pop_html(payload, record_id=record_id)
+
+        ARTICLE_HTML_CACHE[record_id] = html
+        ARTICLE_META_CACHE[record_id] = {"template": "技术科普"}
+
+        update_bitable_record(record_id=record_id, title=title, body=body)
+
+        return jsonify({"ok": True, "message": "保存成功"})
+    except Exception as e:
+        log("save_tech_pop_article 异常：", repr(e))
+        traceback.print_exc()
+        return jsonify({"ok": False, "message": "保存失败，请稍后重试"}), 500
 
 
 @app.route("/feishu_callback", methods=["POST"])

@@ -10,22 +10,37 @@ from flask import Flask, request, jsonify, render_template_string
 
 from prompt_builder import normalize_text
 from doubao_client import call_doubao_generate
+from config_loader import load_config
+
+CONFIG = load_config()
 
 app = Flask(__name__)
 ARTICLE_HTML_CACHE = {}
 
-ARK_API_KEY = os.getenv("ARK_API_KEY", "51271bc4-601f-4f80-93ba-3725a971b0c1")
-ARK_BASE_URL = os.getenv("ARK_BASE_URL", "https://ark.cn-beijing.volces.com/api/v3")
-ARK_MODEL = os.getenv("ARK_MODEL", "doubao-1-5-pro-32k-250115")
+# =========================
+# 从 config.yaml 读取配置
+# =========================
 
-FEISHU_APP_ID = os.getenv("FEISHU_APP_ID", "cli_a922531157ba9bcb")
-FEISHU_APP_SECRET = os.getenv("FEISHU_APP_SECRET", "xmubydlGmOkSg2J0XjJybbNf0fHXrNrS")
+APP_NAME = CONFIG["app"]["name"]
+DEBUG = CONFIG["app"]["debug"]
+HOST = CONFIG["app"]["host"]
+PORT = CONFIG["app"]["port"]
 
-BITABLE_APP_TOKEN = os.getenv("BITABLE_APP_TOKEN", "UHI4b4izma1E5SsYGP9cQ9KHnXz")
-BITABLE_TABLE_ID = os.getenv("BITABLE_TABLE_ID", "tblFUuB0ICxpylvM")
+ARK_API_KEY = CONFIG["doubao"]["api_key"]
+ARK_BASE_URL = CONFIG["doubao"]["base_url"]
+ARK_MODEL = CONFIG["doubao"]["model"]
 
-HOST = "0.0.0.0"
-PORT = 7001
+FEISHU_APP_ID = CONFIG["feishu"]["app_id"]
+FEISHU_APP_SECRET = CONFIG["feishu"]["app_secret"]
+BITABLE_APP_TOKEN = CONFIG["feishu"]["app_token"]
+BITABLE_TABLE_ID = CONFIG["feishu"]["table_id"]
+
+LOG_DIR = CONFIG["paths"]["logs_dir"]
+DATA_DIR = CONFIG["paths"]["data_dir"]
+
+# 自动创建目录
+os.makedirs(LOG_DIR, exist_ok=True)
+os.makedirs(DATA_DIR, exist_ok=True)
 
 
 def log(*args):
@@ -308,7 +323,7 @@ PAGE_HTML = """
 def health():
     return jsonify({
         "ok": True,
-        "message": "ai_writer_server is running"
+        "message": f"{APP_NAME} is running"
     })
 
 
@@ -367,4 +382,4 @@ def feishu_callback():
 
 if __name__ == "__main__":
     log(f"启动 Flask 服务：http://{HOST}:{PORT}")
-    app.run(host=HOST, port=PORT, debug=False)
+    app.run(host=HOST, port=PORT, debug=DEBUG)

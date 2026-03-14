@@ -474,10 +474,11 @@ def render_tech_pop_html(article_json: dict) -> str:
             <div class="action-bar">
                 <button type="button" class="copy-btn" id="copyPublishBtn">复制发布稿</button>
             </div>
+
             <div class="article-title" contenteditable="true" data-field="title">{title}</div>
             {intro_html}
             {''.join(section_html_list)}
-            {summary_html}
+            {summary_html}           
         </div>
         <script>
             function getNodeText(selector, root) {{
@@ -487,20 +488,21 @@ def render_tech_pop_html(article_json: dict) -> str:
 
             function buildPublishText() {{
                 const lines = [];
-                const page = document.querySelector(".page");
+           
 
-                if (!page) {{
+                const page = document.querySelector(".page");
+                if (!page) {
                     console.log("[copy-publish] page node not found");
                     return "";
-                }}
+                }
 
                 const currentTitle = getNodeText('[data-field="title"]', page);
-                if (currentTitle) {{
+                if (currentTitle) {
                     lines.push("标题：" + currentTitle);
                     lines.push("");
-                }}
+                }
 
-                const currentIntro = getNodeText('[data-field="intro"]', page);
+                const currentIntro = getNodeText('[data-field="intro"]', page); 
                 if (currentIntro) {{
                     lines.push("【导语】");
                     lines.push(currentIntro);
@@ -555,9 +557,9 @@ def render_tech_pop_html(article_json: dict) -> str:
                 const publishText = lines.join("\n").trim();
                 console.log("[copy-publish] publish text length:", publishText.length);
                 return publishText;
-            }}
+            }
 
-            function fallbackCopyText(text) {{
+            function fallbackCopyText(text) {
                 const textarea = document.createElement("textarea");
                 textarea.value = text;
                 textarea.setAttribute("readonly", "readonly");
@@ -568,44 +570,44 @@ def render_tech_pop_html(article_json: dict) -> str:
                 textarea.select();
 
                 let copied = false;
-                try {{
+                try {
                     copied = document.execCommand("copy");
-                }} catch (err) {{
+                } catch (err) {
                     copied = false;
-                }}
+                }
 
                 document.body.removeChild(textarea);
                 return copied;
-            }}
+            }
 
-            async function copyPublishText() {{
+            async function copyPublishText() {
                 console.log("[copy-publish] copy button clicked");
                 const text = buildPublishText();
-                if (!text) {{
-                    alert("页面暂无可复制内容");
+                if (!text) {
+                    alert("页面暂不可复制内容");
                     return;
-                }}
+                }
 
-                try {{
-                    if (navigator.clipboard && navigator.clipboard.writeText) {{
+                try {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
                         await navigator.clipboard.writeText(text);
-                    }} else {{
+                    } else {
                         const copied = fallbackCopyText(text);
-                        if (!copied) {{
+                        if (!copied) {
                             throw new Error("fallback copy failed");
-                        }}
-                    }}
+                        }
+                    }
                     alert("已复制到剪贴板");
-                }} catch (err) {{
+                } catch (err) {
                     console.log("[copy-publish] navigator copy failed, try fallback:", err);
                     const copied = fallbackCopyText(text);
-                    if (copied) {{
+                    if (copied) {
                         alert("已复制到剪贴板");
                         return;
-                    }}
+                    }
                     alert("复制失败，请手动复制");
-                }}
-            }}
+                }
+            }
 
             document.getElementById("copyPublishBtn").addEventListener("click", copyPublishText);
         </script>

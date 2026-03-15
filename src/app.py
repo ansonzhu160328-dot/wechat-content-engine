@@ -25,7 +25,7 @@ app = Flask(__name__)
 ARTICLE_HTML_CACHE = {}
 ARTICLE_META_CACHE = {}
 JOB_STATUS_CACHE = {}
-AUTO_PREVIEW_TEMPLATES = {"技术科普", "行业新闻"}
+AUTO_PREVIEW_TEMPLATES = {"技术科普", "行业新闻", "政策解读"}
 
 # =========================
 # 从 config.yaml 读取配置

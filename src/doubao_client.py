@@ -695,12 +695,279 @@ def render_tech_pop_html(article_json: dict, record_id: str = "") -> str:
     return html
 
 
+def render_industry_news_html(article_json: dict, record_id: str = "") -> str:
+    title = normalize_text(article_json.get("title")) or "行业新闻"
+    intro = normalize_text(article_json.get("intro"))
+    event_summary = normalize_text(article_json.get("event_summary"))
+    industry_background = normalize_text(article_json.get("industry_background"))
+    impact_analysis = normalize_text(article_json.get("impact_analysis"))
+    industry_insight = normalize_text(article_json.get("industry_insight"))
+
+    html = """
+    <!DOCTYPE html>
+    <html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8">
+        <title>{title}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body {{
+                margin: 0;
+                padding: 0;
+                background: #f5f6f8;
+                font-family: "Microsoft YaHei", Arial, sans-serif;
+                color: #222;
+            }}
+            .page {{
+                max-width: 860px;
+                margin: 30px auto;
+                background: #fff;
+                padding: 36px 32px 48px;
+                box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+                border-radius: 12px;
+            }}
+            .action-bar {{
+                display: flex;
+                justify-content: flex-end;
+                margin-bottom: 16px;
+            }}
+            .copy-btn {{
+                border: none;
+                background: #2f7cf6;
+                color: #fff;
+                padding: 10px 16px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: bold;
+            }}
+            .copy-btn:hover {{
+                background: #2563eb;
+            }}
+            .save-btn {{
+                border: none;
+                background: #16a34a;
+                color: #fff;
+                padding: 10px 16px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: bold;
+                margin-left: 10px;
+            }}
+            .save-btn:hover {{
+                background: #15803d;
+            }}
+            .article-title {{
+                font-size: 30px;
+                font-weight: bold;
+                line-height: 1.4;
+                margin-bottom: 24px;
+                color: #111;
+                text-align: center;
+            }}
+            .section {{
+                margin-top: 20px;
+            }}
+            .section-title {{
+                font-size: 20px;
+                font-weight: bold;
+                color: #111827;
+                margin-bottom: 10px;
+            }}
+            .paragraph {{
+                font-size: 16px;
+                line-height: 1.9;
+                color: #2f3a4a;
+                white-space: pre-wrap;
+            }}
+            [contenteditable="true"]:focus {{
+                outline: 2px solid #93c5fd;
+                border-radius: 6px;
+                background: #f8fbff;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="page" id="industryNewsPage">
+            <div class="action-bar">
+                <button type="button" class="copy-btn" id="copyPublishBtn">复制发布稿</button>
+                <button type="button" class="save-btn" id="saveArticleBtn">保存修改</button>
+            </div>
+
+            <div class="article-title" contenteditable="true" data-field="title">{title}</div>
+
+            <div class="section">
+                <div class="section-title">导语</div>
+                <div class="paragraph" contenteditable="true" data-field="intro">{intro}</div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">事件概述</div>
+                <div class="paragraph" contenteditable="true" data-field="event_summary">{event_summary}</div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">行业背景</div>
+                <div class="paragraph" contenteditable="true" data-field="industry_background">{industry_background}</div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">影响分析</div>
+                <div class="paragraph" contenteditable="true" data-field="impact_analysis">{impact_analysis}</div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">行业启示</div>
+                <div class="paragraph" contenteditable="true" data-field="industry_insight">{industry_insight}</div>
+            </div>
+        </div>
+
+        <script>
+            function getNodeText(selector) {{
+                const el = document.querySelector(selector);
+                if (!el) {{
+                    return "";
+                }}
+                return (el.innerText || "").replace(/\s+$/g, "").trim();
+            }}
+
+            function fallbackCopyText(text) {{
+                const textarea = document.createElement("textarea");
+                textarea.value = text;
+                textarea.style.position = "fixed";
+                textarea.style.opacity = "0";
+                textarea.style.left = "-9999px";
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+                let copied = false;
+                try {{
+                    copied = document.execCommand("copy");
+                }} catch (e) {{
+                    copied = false;
+                }}
+                document.body.removeChild(textarea);
+                return copied;
+            }}
+
+            function buildEditablePayload() {{
+                return {{
+                    title: getNodeText('[data-field="title"]'),
+                    intro: getNodeText('[data-field="intro"]'),
+                    event_summary: getNodeText('[data-field="event_summary"]'),
+                    industry_background: getNodeText('[data-field="industry_background"]'),
+                    impact_analysis: getNodeText('[data-field="impact_analysis"]'),
+                    industry_insight: getNodeText('[data-field="industry_insight"]')
+                }};
+            }}
+
+            function buildPublishText() {{
+                const payload = buildEditablePayload();
+                const lines = [];
+
+                lines.push('标题：' + (payload.title || ''));
+                lines.push('');
+
+                lines.push('【导语】');
+                lines.push(payload.intro || '');
+                lines.push('');
+
+                lines.push('【事件概述】');
+                lines.push(payload.event_summary || '');
+                lines.push('');
+
+                lines.push('【行业背景】');
+                lines.push(payload.industry_background || '');
+                lines.push('');
+
+                lines.push('【影响分析】');
+                lines.push(payload.impact_analysis || '');
+                lines.push('');
+
+                lines.push('【行业启示】');
+                lines.push(payload.industry_insight || '');
+
+                return lines.join('\n').trim();
+            }}
+
+            async function copyPublishText() {{
+                const text = buildPublishText();
+                if (!text) {{
+                    alert('页面暂无可复制内容');
+                    return;
+                }}
+
+                try {{
+                    if (navigator.clipboard && navigator.clipboard.writeText) {{
+                        await navigator.clipboard.writeText(text);
+                    }} else {{
+                        const copied = fallbackCopyText(text);
+                        if (!copied) {{
+                            throw new Error('fallback copy failed');
+                        }}
+                    }}
+                    alert('已复制到剪贴板');
+                }} catch (err) {{
+                    const copied = fallbackCopyText(text);
+                    if (copied) {{
+                        alert('已复制到剪贴板');
+                        return;
+                    }}
+                    alert('复制失败，请手动复制');
+                }}
+            }}
+
+            async function saveArticle() {{
+                const payload = buildEditablePayload();
+
+                try {{
+                    const resp = await fetch('/article/{record_id}/save', {{
+                        method: 'POST',
+                        headers: {{ 'Content-Type': 'application/json' }},
+                        body: JSON.stringify(payload)
+                    }});
+
+                    if (!resp.ok) {{
+                        throw new Error('save request failed');
+                    }}
+
+                    const data = await resp.json();
+                    if (!data.ok) {{
+                        throw new Error(data.message || 'save failed');
+                    }}
+
+                    alert('保存成功');
+                }} catch (err) {{
+                    alert('保存失败，请稍后重试');
+                }}
+            }}
+
+            document.getElementById('copyPublishBtn').addEventListener('click', copyPublishText);
+            document.getElementById('saveArticleBtn').addEventListener('click', saveArticle);
+        </script>
+    </body>
+    </html>
+    """.format(
+        title=title,
+        intro=intro,
+        event_summary=event_summary,
+        industry_background=industry_background,
+        impact_analysis=impact_analysis,
+        industry_insight=industry_insight,
+        record_id=record_id,
+    )
+    return html
+
+
 def render_article_html_by_template(template: str, article_json: dict, record_id: str = "") -> str:
     if template == "技术科普":
         return render_tech_pop_html(article_json, record_id=record_id)
+    if template == "行业新闻":
+        return render_industry_news_html(article_json, record_id=record_id)
 
     title, body = format_article_by_template(template, article_json)
-    simple_html = f"""
+    simple_html = """
     <!DOCTYPE html>
     <html lang="zh-CN">
     <head>
@@ -742,7 +1009,7 @@ def render_article_html_by_template(template: str, article_json: dict, record_id
         </div>
     </body>
     </html>
-    """
+    """.format(title=title, body=body)
     return simple_html
 
 

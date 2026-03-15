@@ -10,7 +10,13 @@ import requests
 from flask import Flask, request, jsonify, render_template_string
 
 from prompt_builder import normalize_text
-from doubao_client import call_doubao_generate, format_tech_pop, render_tech_pop_html
+from doubao_client import (
+    call_doubao_generate,
+    format_industry_news,
+    format_tech_pop,
+    render_industry_news_html,
+    render_tech_pop_html,
+)
 from config_loader import load_config
 
 CONFIG = load_config()
@@ -514,17 +520,21 @@ def save_tech_pop_article(record_id):
 
         template = normalize_text(ARTICLE_META_CACHE.get(record_id, {}).get("template", "技术科普"))
 
-        if template != "技术科普":
-            return jsonify({"ok": False, "message": "仅支持技术科普模板保存"}), 400
-
         if not isinstance(payload, dict):
             return jsonify({"ok": False, "message": "请求体格式错误"}), 400
 
-        title, body = format_tech_pop(payload)
-        html = render_tech_pop_html(payload, record_id=record_id)
+        if template == "技术科普":
+            title, body = format_tech_pop(payload)
+            html = render_tech_pop_html(payload, record_id=record_id)
+            ARTICLE_META_CACHE[record_id] = {"template": "技术科普"}
+        elif template == "行业新闻":
+            title, body = format_industry_news(payload)
+            html = render_industry_news_html(payload, record_id=record_id)
+            ARTICLE_META_CACHE[record_id] = {"template": "行业新闻"}
+        else:
+            return jsonify({"ok": False, "message": "当前模板暂不支持保存"}), 400
 
         ARTICLE_HTML_CACHE[record_id] = html
-        ARTICLE_META_CACHE[record_id] = {"template": "技术科普"}
 
         update_bitable_record(record_id=record_id, title=title, body=body)
 

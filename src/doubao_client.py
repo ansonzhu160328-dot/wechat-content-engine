@@ -888,7 +888,7 @@ def render_industry_news_html(article_json: dict, record_id: str = "") -> str:
                 lines.push('【行业启示】');
                 lines.push(payload.industry_insight || '');
 
-                return lines.join('\n').trim();
+                return lines.join('\\n').trim();
             }}
 
             async function copyPublishText() {{

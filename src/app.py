@@ -14,9 +14,11 @@ from doubao_client import (
     call_doubao_generate,
     format_industry_news,
     format_policy_interpretation,
+    format_product_intro,
     format_tech_pop,
     render_industry_news_html,
     render_policy_interpretation_html,
+    render_product_intro_html,
     render_tech_pop_html,
 )
 from config_loader import load_config
@@ -537,6 +539,10 @@ def save_tech_pop_article(record_id):
             title, body = format_policy_interpretation(payload)
             html = render_policy_interpretation_html(payload, record_id=record_id)
             ARTICLE_META_CACHE[record_id] = {"template": "政策解读"}
+        elif template == "产品介绍":
+            title, body = format_product_intro(payload)
+            html = render_product_intro_html(payload, record_id=record_id)
+            ARTICLE_META_CACHE[record_id] = {"template": "产品介绍"}
         else:
             return jsonify({"ok": False, "message": "当前模板暂不支持保存"}), 400
 

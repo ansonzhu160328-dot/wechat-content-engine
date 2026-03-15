@@ -1234,6 +1234,320 @@ def render_policy_interpretation_html(article_json: dict, record_id: str = "") -
     return html
 
 
+def render_product_intro_html(article_json: dict, record_id: str = "") -> str:
+    title = normalize_text(article_json.get("title")) or "产品介绍"
+    intro = normalize_text(article_json.get("intro"))
+    product_positioning = normalize_text(article_json.get("product_positioning"))
+    highlights = article_json.get("core_highlights", [])
+    application_scenarios = normalize_text(article_json.get("application_scenarios"))
+    customer_value = normalize_text(article_json.get("customer_value"))
+    summary = normalize_text(article_json.get("summary"))
+
+    if not isinstance(highlights, list):
+        highlights = [normalize_text(highlights)]
+
+    highlight_html_parts = []
+    for item in highlights:
+        item_text = normalize_text(item)
+        if not item_text:
+            continue
+        highlight_html_parts.append('<li class="highlight-item" contenteditable="true" data-highlight-item="1">{}</li>'.format(item_text))
+
+    if not highlight_html_parts:
+        highlight_html_parts.append('<li class="highlight-item" contenteditable="true" data-highlight-item="1"></li>')
+
+    highlights_html = "".join(highlight_html_parts)
+
+    html = """
+    <!DOCTYPE html>
+    <html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8">
+        <title>{title}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body {{
+                margin: 0;
+                padding: 0;
+                background: #f5f6f8;
+                font-family: "Microsoft YaHei", Arial, sans-serif;
+                color: #222;
+            }}
+            .page {{
+                max-width: 860px;
+                margin: 30px auto;
+                background: #fff;
+                padding: 36px 32px 48px;
+                box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+                border-radius: 12px;
+            }}
+            .action-bar {{
+                display: flex;
+                justify-content: flex-end;
+                margin-bottom: 16px;
+            }}
+            .copy-btn {{
+                border: none;
+                background: #2f7cf6;
+                color: #fff;
+                padding: 10px 16px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: bold;
+            }}
+            .copy-btn:hover {{
+                background: #2563eb;
+            }}
+            .save-btn {{
+                border: none;
+                background: #16a34a;
+                color: #fff;
+                padding: 10px 16px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: bold;
+                margin-left: 10px;
+            }}
+            .save-btn:hover {{
+                background: #15803d;
+            }}
+            .article-title {{
+                font-size: 30px;
+                font-weight: bold;
+                line-height: 1.4;
+                margin-bottom: 24px;
+                color: #111;
+                text-align: center;
+            }}
+            .section {{
+                margin-top: 20px;
+            }}
+            .section-title {{
+                font-size: 20px;
+                font-weight: bold;
+                color: #111827;
+                margin-bottom: 10px;
+            }}
+            .paragraph {{
+                font-size: 16px;
+                line-height: 1.9;
+                color: #2f3a4a;
+                white-space: pre-wrap;
+            }}
+            .highlight-list {{
+                margin: 0;
+                padding-left: 22px;
+            }}
+            .highlight-item {{
+                font-size: 16px;
+                line-height: 1.9;
+                color: #2f3a4a;
+                margin-bottom: 6px;
+            }}
+            [contenteditable="true"]:focus {{
+                outline: 2px solid #93c5fd;
+                border-radius: 6px;
+                background: #f8fbff;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="page" id="productIntroPage">
+            <div class="action-bar">
+                <button type="button" class="copy-btn" id="copyPublishBtn">复制发布稿</button>
+                <button type="button" class="save-btn" id="saveArticleBtn">保存修改</button>
+            </div>
+
+            <div class="article-title" contenteditable="true" data-field="title">{title}</div>
+
+            <div class="section">
+                <div class="section-title">导语</div>
+                <div class="paragraph" contenteditable="true" data-field="intro">{intro}</div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">产品背景/定位</div>
+                <div class="paragraph" contenteditable="true" data-field="product_positioning">{product_positioning}</div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">核心亮点</div>
+                <ol class="highlight-list" id="highlightList">{highlights_html}</ol>
+            </div>
+
+            <div class="section">
+                <div class="section-title">应用场景</div>
+                <div class="paragraph" contenteditable="true" data-field="application_scenarios">{application_scenarios}</div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">客户价值</div>
+                <div class="paragraph" contenteditable="true" data-field="customer_value">{customer_value}</div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">总结</div>
+                <div class="paragraph" contenteditable="true" data-field="summary">{summary}</div>
+            </div>
+        </div>
+
+        <script>
+            function getNodeText(selector) {{
+                const el = document.querySelector(selector);
+                return el ? (el.innerText || "").trim() : "";
+            }}
+
+            function getHighlightList() {{
+                const list = [];
+                document.querySelectorAll('#highlightList .highlight-item').forEach(function (el) {{
+                    const text = (el.innerText || '').trim();
+                    if (text) {{
+                        list.push(text);
+                    }}
+                }});
+                return list;
+            }}
+
+            function fallbackCopyText(text) {{
+                const textarea = document.createElement("textarea");
+                textarea.value = text;
+                textarea.style.position = "fixed";
+                textarea.style.opacity = "0";
+                textarea.style.left = "-9999px";
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+                let copied = false;
+                try {{
+                    copied = document.execCommand("copy");
+                }} catch (e) {{
+                    copied = false;
+                }}
+                document.body.removeChild(textarea);
+                return copied;
+            }}
+
+            function buildEditablePayload() {{
+                return {{
+                    title: getNodeText('[data-field="title"]'),
+                    intro: getNodeText('[data-field="intro"]'),
+                    product_positioning: getNodeText('[data-field="product_positioning"]'),
+                    core_highlights: getHighlightList(),
+                    application_scenarios: getNodeText('[data-field="application_scenarios"]'),
+                    customer_value: getNodeText('[data-field="customer_value"]'),
+                    summary: getNodeText('[data-field="summary"]')
+                }};
+            }}
+
+            function buildPublishText() {{
+                const payload = buildEditablePayload();
+                const lines = [];
+
+                lines.push('标题：' + (payload.title || ''));
+                lines.push('');
+
+                lines.push('【导语】');
+                lines.push(payload.intro || '');
+                lines.push('');
+
+                lines.push('【产品背景/定位】');
+                lines.push(payload.product_positioning || '');
+                lines.push('');
+
+                lines.push('【核心亮点】');
+                if (payload.core_highlights && payload.core_highlights.length > 0) {{
+                    payload.core_highlights.forEach(function (item, idx) {{
+                        lines.push((idx + 1) + '. ' + item);
+                    }});
+                }}
+                lines.push('');
+
+                lines.push('【应用场景】');
+                lines.push(payload.application_scenarios || '');
+                lines.push('');
+
+                lines.push('【客户价值】');
+                lines.push(payload.customer_value || '');
+                lines.push('');
+
+                lines.push('【总结】');
+                lines.push(payload.summary || '');
+
+                return lines.join('\\n').trim();
+            }}
+
+            async function copyPublishText() {{
+                const text = buildPublishText();
+                if (!text) {{
+                    alert('页面暂无可复制内容');
+                    return;
+                }}
+
+                try {{
+                    if (navigator.clipboard && navigator.clipboard.writeText) {{
+                        await navigator.clipboard.writeText(text);
+                    }} else {{
+                        const copied = fallbackCopyText(text);
+                        if (!copied) {{
+                            throw new Error('fallback copy failed');
+                        }}
+                    }}
+                    alert('已复制到剪贴板');
+                }} catch (err) {{
+                    const copied = fallbackCopyText(text);
+                    if (copied) {{
+                        alert('已复制到剪贴板');
+                        return;
+                    }}
+                    alert('复制失败，请手动复制');
+                }}
+            }}
+
+            async function saveArticle() {{
+                const payload = buildEditablePayload();
+
+                try {{
+                    const resp = await fetch('/article/{record_id}/save', {{
+                        method: 'POST',
+                        headers: {{ 'Content-Type': 'application/json' }},
+                        body: JSON.stringify(payload)
+                    }});
+
+                    if (!resp.ok) {{
+                        throw new Error('save request failed');
+                    }}
+
+                    const data = await resp.json();
+                    if (!data.ok) {{
+                        throw new Error(data.message || 'save failed');
+                    }}
+
+                    alert('保存成功');
+                }} catch (err) {{
+                    alert('保存失败，请稍后重试');
+                }}
+            }}
+
+            document.getElementById('copyPublishBtn').addEventListener('click', copyPublishText);
+            document.getElementById('saveArticleBtn').addEventListener('click', saveArticle);
+        </script>
+    </body>
+    </html>
+    """.format(
+        title=title,
+        intro=intro,
+        product_positioning=product_positioning,
+        highlights_html=highlights_html,
+        application_scenarios=application_scenarios,
+        customer_value=customer_value,
+        summary=summary,
+        record_id=record_id,
+    )
+    return html
+
+
 def render_article_html_by_template(template: str, article_json: dict, record_id: str = "") -> str:
     if template == "技术科普":
         return render_tech_pop_html(article_json, record_id=record_id)
@@ -1241,6 +1555,8 @@ def render_article_html_by_template(template: str, article_json: dict, record_id
         return render_industry_news_html(article_json, record_id=record_id)
     if template == "政策解读":
         return render_policy_interpretation_html(article_json, record_id=record_id)
+    if template == "产品介绍":
+        return render_product_intro_html(article_json, record_id=record_id)
 
     title, body = format_article_by_template(template, article_json)
     simple_html = """

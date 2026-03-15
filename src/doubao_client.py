@@ -27,6 +27,15 @@ def parse_model_json(content: str) -> dict:
         raise Exception(f"模型输出不是合法JSON：{e}；原始输出：{content}")
 
 
+
+def _normalize_section_labels(article_json: dict, defaults: dict) -> dict:
+    labels = dict(defaults)
+    raw_labels = article_json.get("section_labels", {})
+    if isinstance(raw_labels, dict):
+        for key, default_val in defaults.items():
+            labels[key] = normalize_text(raw_labels.get(key, default_val)) or default_val
+    return labels
+
 def format_industry_news(article_json: dict) -> tuple[str, str]:
     title = normalize_text(article_json.get("title")) or "行业新闻"
     intro = normalize_text(article_json.get("intro"))
@@ -35,52 +44,67 @@ def format_industry_news(article_json: dict) -> tuple[str, str]:
     impact_analysis = normalize_text(article_json.get("impact_analysis"))
     industry_insight = normalize_text(article_json.get("industry_insight"))
 
+    labels = _normalize_section_labels(article_json, {
+        "intro": "【导语】",
+        "event_summary": "【事件概述】",
+        "industry_background": "【行业背景】",
+        "impact_analysis": "【影响分析】",
+        "industry_insight": "【行业启示】",
+    })
+
     lines = []
 
     if intro:
-        lines.append("【导语】")
+        lines.append(labels["intro"])
         lines.append(intro)
         lines.append("")
 
     if event_summary:
-        lines.append("【事件概述】")
+        lines.append(labels["event_summary"])
         lines.append(event_summary)
         lines.append("")
 
     if industry_background:
-        lines.append("【行业背景】")
+        lines.append(labels["industry_background"])
         lines.append(industry_background)
         lines.append("")
 
     if impact_analysis:
-        lines.append("【影响分析】")
+        lines.append(labels["impact_analysis"])
         lines.append(impact_analysis)
         lines.append("")
 
     if industry_insight:
-        lines.append("【行业启示】")
+        lines.append(labels["industry_insight"])
         lines.append(industry_insight)
 
     body = "\n".join(lines).strip()
     return title, body
-
 
 def format_tech_pop(article_json: dict) -> tuple[str, str]:
     title = normalize_text(article_json.get("title")) or "技术科普"
     intro = normalize_text(article_json.get("intro"))
     summary = normalize_text(article_json.get("summary"))
 
+    labels = _normalize_section_labels(article_json, {
+        "intro": "【导语】",
+        "section1": "【模块1】",
+        "section2": "【模块2】",
+        "section3": "【模块3】",
+        "summary": "【总结】",
+    })
+
     lines = []
 
     if intro:
-        lines.append("【导语】")
+        lines.append(labels["intro"])
         lines.append(intro)
         lines.append("")
 
     section_labels = {
-        "section1": "【模块1】",
-        "section2": "【模块2】",
-        "section3": "【模块3】"
+        "section1": labels["section1"],
+        "section2": labels["section2"],
+        "section3": labels["section3"],
     }
 
     for sec_key in ["section1", "section2", "section3"]:
@@ -114,12 +138,11 @@ def format_tech_pop(article_json: dict) -> tuple[str, str]:
                 item_index += 1
 
     if summary:
-        lines.append("【总结】")
+        lines.append(labels["summary"])
         lines.append(summary)
 
     body = "\n".join(lines).strip()
     return title, body
-
 
 def format_policy_interpretation(article_json: dict) -> tuple[str, str]:
     title = normalize_text(article_json.get("title")) or "政策解读"
@@ -130,40 +153,48 @@ def format_policy_interpretation(article_json: dict) -> tuple[str, str]:
     advice = normalize_text(article_json.get("advice"))
     summary = normalize_text(article_json.get("summary"))
 
+    labels = _normalize_section_labels(article_json, {
+        "intro": "【导语】",
+        "policy_background": "【政策背景】",
+        "core_content": "【政策核心内容】",
+        "industry_impact": "【对行业的影响】",
+        "advice": "【对企业/用户的建议】",
+        "summary": "【总结】",
+    })
+
     lines = []
 
     if intro:
-        lines.append("【导语】")
+        lines.append(labels["intro"])
         lines.append(intro)
         lines.append("")
 
     if policy_background:
-        lines.append("【政策背景】")
+        lines.append(labels["policy_background"])
         lines.append(policy_background)
         lines.append("")
 
     if core_content:
-        lines.append("【政策核心内容】")
+        lines.append(labels["core_content"])
         lines.append(core_content)
         lines.append("")
 
     if industry_impact:
-        lines.append("【对行业的影响】")
+        lines.append(labels["industry_impact"])
         lines.append(industry_impact)
         lines.append("")
 
     if advice:
-        lines.append("【对企业/用户的建议】")
+        lines.append(labels["advice"])
         lines.append(advice)
         lines.append("")
 
     if summary:
-        lines.append("【总结】")
+        lines.append(labels["summary"])
         lines.append(summary)
 
     body = "\n".join(lines).strip()
     return title, body
-
 
 def format_product_intro(article_json: dict) -> tuple[str, str]:
     title = normalize_text(article_json.get("title")) or "产品介绍"
@@ -174,22 +205,31 @@ def format_product_intro(article_json: dict) -> tuple[str, str]:
     customer_value = normalize_text(article_json.get("customer_value"))
     summary = normalize_text(article_json.get("summary"))
 
+    labels = _normalize_section_labels(article_json, {
+        "intro": "【导语】",
+        "product_positioning": "【产品背景/定位】",
+        "core_highlights": "【核心亮点】",
+        "application_scenarios": "【应用场景】",
+        "customer_value": "【客户价值】",
+        "summary": "【总结】",
+    })
+
     if not isinstance(highlights, list):
         highlights = [normalize_text(highlights)]
 
     lines = []
 
     if intro:
-        lines.append("【导语】")
+        lines.append(labels["intro"])
         lines.append(intro)
         lines.append("")
 
     if product_positioning:
-        lines.append("【产品背景/定位】")
+        lines.append(labels["product_positioning"])
         lines.append(product_positioning)
         lines.append("")
 
-    lines.append("【核心亮点】")
+    lines.append(labels["core_highlights"])
     has_highlight = False
     for idx, item in enumerate(highlights, start=1):
         item_text = normalize_text(item)
@@ -200,22 +240,21 @@ def format_product_intro(article_json: dict) -> tuple[str, str]:
         lines.append("")
 
     if application_scenarios:
-        lines.append("【应用场景】")
+        lines.append(labels["application_scenarios"])
         lines.append(application_scenarios)
         lines.append("")
 
     if customer_value:
-        lines.append("【客户价值】")
+        lines.append(labels["customer_value"])
         lines.append(customer_value)
         lines.append("")
 
     if summary:
-        lines.append("【总结】")
+        lines.append(labels["summary"])
         lines.append(summary)
 
     body = "\n".join(lines).strip()
     return title, body
-
 
 def format_case_analysis(article_json: dict) -> tuple[str, str]:
     title = normalize_text(article_json.get("title")) or "案例分析"
@@ -226,40 +265,48 @@ def format_case_analysis(article_json: dict) -> tuple[str, str]:
     result = normalize_text(article_json.get("result"))
     insight = normalize_text(article_json.get("insight"))
 
+    labels = _normalize_section_labels(article_json, {
+        "intro": "【导语】",
+        "project_background": "【项目背景】",
+        "pain_points": "【项目难点/痛点】",
+        "solution": "【解决方案】",
+        "result": "【实施效果】",
+        "insight": "【总结与启示】",
+    })
+
     lines = []
 
     if intro:
-        lines.append("【导语】")
+        lines.append(labels["intro"])
         lines.append(intro)
         lines.append("")
 
     if project_background:
-        lines.append("【项目背景】")
+        lines.append(labels["project_background"])
         lines.append(project_background)
         lines.append("")
 
     if pain_points:
-        lines.append("【项目难点/痛点】")
+        lines.append(labels["pain_points"])
         lines.append(pain_points)
         lines.append("")
 
     if solution:
-        lines.append("【解决方案】")
+        lines.append(labels["solution"])
         lines.append(solution)
         lines.append("")
 
     if result:
-        lines.append("【实施效果】")
+        lines.append(labels["result"])
         lines.append(result)
         lines.append("")
 
     if insight:
-        lines.append("【总结与启示】")
+        lines.append(labels["insight"])
         lines.append(insight)
 
     body = "\n".join(lines).strip()
     return title, body
-
 
 def format_default(article_json: dict) -> tuple[str, str]:
     title = normalize_text(article_json.get("title")) or "AI写稿"
@@ -291,6 +338,13 @@ def render_tech_pop_html(article_json: dict, record_id: str = "") -> str:
     title = normalize_text(article_json.get("title")) or "技术科普"
     intro = normalize_text(article_json.get("intro"))
     summary = normalize_text(article_json.get("summary"))
+    labels = _normalize_section_labels(article_json, {
+        "intro": "【导语】",
+        "section1": "【模块1】",
+        "section2": "【模块2】",
+        "section3": "【模块3】",
+        "summary": "【总结】",
+    })
 
     def render_item(item: dict, section_key: str, item_key: str) -> str:
         if not isinstance(item, dict):
@@ -349,12 +403,13 @@ def render_tech_pop_html(article_json: dict, record_id: str = "") -> str:
             section_html_list.append(f'<div class="section-block" data-section="{sec_key}">{"".join(block_parts)}</div>')
 
     intro_html = (
+        f'<div class="intro-title" contenteditable="true" data-label="intro">{labels["intro"]}</div>'
         f'<div class="intro-box" contenteditable="true" data-field="intro">{intro}</div>'
         if intro else ""
     )
     summary_html = f'''
     <div class="summary-box">
-        <div class="summary-title">总结</div>
+        <div class="summary-title" contenteditable="true" data-label="summary">{labels["summary"]}</div>
         <div class="paragraph" contenteditable="true" data-field="summary">{summary}</div>
     </div>
     ''' if summary else ""
@@ -433,6 +488,12 @@ def render_tech_pop_html(article_json: dict, record_id: str = "") -> str:
                 margin-bottom: 28px;
                 color: #333;
             }}
+            .intro-title {{
+                font-size: 18px;
+                font-weight: bold;
+                margin-bottom: 8px;
+                color: #111827;
+            }}
             .section-block {{
                 margin-bottom: 30px;
             }}
@@ -497,6 +558,8 @@ def render_tech_pop_html(article_json: dict, record_id: str = "") -> str:
             {summary_html}
         </div>
         <script>
+            const labels = {labels};
+
             function getNodeText(selector, root) {{
                 const node = (root || document).querySelector(selector);
                 return node ? node.innerText.trim() : "";
@@ -517,15 +580,16 @@ def render_tech_pop_html(article_json: dict, record_id: str = "") -> str:
                     lines.push("");
                 }}
 
+                const introTitle = getNodeText('[data-label="intro"]', page);
                 const currentIntro = getNodeText('[data-field="intro"]', page);
                 if (currentIntro) {{
-                    lines.push("【导语】");
+                    lines.push(introTitle || "【导语】");
                     lines.push(currentIntro);
                     lines.push("");
                 }}
 
                 const sectionOrder = ["section1", "section2", "section3"];
-                sectionOrder.forEach(function (sectionKey, sectionIdx) {{
+                sectionOrder.forEach(function (sectionKey) {{
                     const section = page.querySelector('.section-block[data-section="' + sectionKey + '"]');
                     if (!section) {{
                         return;
@@ -533,7 +597,7 @@ def render_tech_pop_html(article_json: dict, record_id: str = "") -> str:
 
                     const sectionTitle = getNodeText('[data-field="section_title"]', section);
                     if (sectionTitle) {{
-                        lines.push("【模块" + (sectionIdx + 1) + "】" + sectionTitle);
+                        lines.push(sectionTitle);
                         lines.push("");
                     }}
 
@@ -563,9 +627,10 @@ def render_tech_pop_html(article_json: dict, record_id: str = "") -> str:
                     }});
                 }});
 
+                const summaryTitle = getNodeText('[data-label="summary"]', page);
                 const currentSummary = getNodeText('[data-field="summary"]', page);
                 if (currentSummary) {{
-                    lines.push("【总结】");
+                    lines.push(summaryTitle || "【总结】");
                     lines.push(currentSummary);
                 }}
 
@@ -600,6 +665,13 @@ def render_tech_pop_html(article_json: dict, record_id: str = "") -> str:
                 const page = document.querySelector(".page");
                 const payload = {{
                     title: getNodeText('[data-field="title"]', page),
+                    section_labels: {{
+                        intro: getNodeText('[data-label="intro"]', page),
+                        section1: labels.section1,
+                        section2: labels.section2,
+                        section3: labels.section3,
+                        summary: getNodeText('[data-label="summary"]', page)
+                    }},
                     intro: getNodeText('[data-field="intro"]', page),
                     section1: {{ title: "", item1: {{ subtitle: "", body: "", image_hint: "" }}, item2: {{ subtitle: "", body: "", image_hint: "" }} }},
                     section2: {{ title: "", item1: {{ subtitle: "", body: "", image_hint: "" }}, item2: {{ subtitle: "", body: "", image_hint: "" }} }},
@@ -687,6 +759,11 @@ def render_tech_pop_html(article_json: dict, record_id: str = "") -> str:
     </html>
     """.format(
         title=title,
+        labels=json.dumps({
+            "section1": labels["section1"],
+            "section2": labels["section2"],
+            "section3": labels["section3"],
+        }, ensure_ascii=False),
         intro_html=intro_html,
         section_html=section_html,
         summary_html=summary_html,
@@ -702,6 +779,13 @@ def render_industry_news_html(article_json: dict, record_id: str = "") -> str:
     industry_background = normalize_text(article_json.get("industry_background"))
     impact_analysis = normalize_text(article_json.get("impact_analysis"))
     industry_insight = normalize_text(article_json.get("industry_insight"))
+    labels = _normalize_section_labels(article_json, {
+        "intro": "【导语】",
+        "event_summary": "【事件概述】",
+        "industry_background": "【行业背景】",
+        "impact_analysis": "【影响分析】",
+        "industry_insight": "【行业启示】",
+    })
 
     html = """
     <!DOCTYPE html>
@@ -798,27 +882,27 @@ def render_industry_news_html(article_json: dict, record_id: str = "") -> str:
             <div class="article-title" contenteditable="true" data-field="title">{title}</div>
 
             <div class="section">
-                <div class="section-title">导语</div>
+                <div class="section-title" contenteditable="true" data-label="intro">{intro_label}</div>
                 <div class="paragraph" contenteditable="true" data-field="intro">{intro}</div>
             </div>
 
             <div class="section">
-                <div class="section-title">事件概述</div>
+                <div class="section-title" contenteditable="true" data-label="event_summary">{event_summary_label}</div>
                 <div class="paragraph" contenteditable="true" data-field="event_summary">{event_summary}</div>
             </div>
 
             <div class="section">
-                <div class="section-title">行业背景</div>
+                <div class="section-title" contenteditable="true" data-label="industry_background">{industry_background_label}</div>
                 <div class="paragraph" contenteditable="true" data-field="industry_background">{industry_background}</div>
             </div>
 
             <div class="section">
-                <div class="section-title">影响分析</div>
+                <div class="section-title" contenteditable="true" data-label="impact_analysis">{impact_analysis_label}</div>
                 <div class="paragraph" contenteditable="true" data-field="impact_analysis">{impact_analysis}</div>
             </div>
 
             <div class="section">
-                <div class="section-title">行业启示</div>
+                <div class="section-title" contenteditable="true" data-label="industry_insight">{industry_insight_label}</div>
                 <div class="paragraph" contenteditable="true" data-field="industry_insight">{industry_insight}</div>
             </div>
         </div>
@@ -854,6 +938,13 @@ def render_industry_news_html(article_json: dict, record_id: str = "") -> str:
             function buildEditablePayload() {{
                 return {{
                     title: getNodeText('[data-field="title"]'),
+                    section_labels: {{
+                        intro: getNodeText('[data-label="intro"]'),
+                        event_summary: getNodeText('[data-label="event_summary"]'),
+                        industry_background: getNodeText('[data-label="industry_background"]'),
+                        impact_analysis: getNodeText('[data-label="impact_analysis"]'),
+                        industry_insight: getNodeText('[data-label="industry_insight"]')
+                    }},
                     intro: getNodeText('[data-field="intro"]'),
                     event_summary: getNodeText('[data-field="event_summary"]'),
                     industry_background: getNodeText('[data-field="industry_background"]'),
@@ -869,23 +960,23 @@ def render_industry_news_html(article_json: dict, record_id: str = "") -> str:
                 lines.push('标题：' + (payload.title || ''));
                 lines.push('');
 
-                lines.push('【导语】');
+                lines.push(payload.section_labels.intro || '【导语】');
                 lines.push(payload.intro || '');
                 lines.push('');
 
-                lines.push('【事件概述】');
+                lines.push(payload.section_labels.event_summary || '【事件概述】');
                 lines.push(payload.event_summary || '');
                 lines.push('');
 
-                lines.push('【行业背景】');
+                lines.push(payload.section_labels.industry_background || '【行业背景】');
                 lines.push(payload.industry_background || '');
                 lines.push('');
 
-                lines.push('【影响分析】');
+                lines.push(payload.section_labels.impact_analysis || '【影响分析】');
                 lines.push(payload.impact_analysis || '');
                 lines.push('');
 
-                lines.push('【行业启示】');
+                lines.push(payload.section_labels.industry_insight || '【行业启示】');
                 lines.push(payload.industry_insight || '');
 
                 return lines.join('\\n').trim();
@@ -950,6 +1041,11 @@ def render_industry_news_html(article_json: dict, record_id: str = "") -> str:
     </html>
     """.format(
         title=title,
+        intro_label=labels["intro"],
+        event_summary_label=labels["event_summary"],
+        industry_background_label=labels["industry_background"],
+        impact_analysis_label=labels["impact_analysis"],
+        industry_insight_label=labels["industry_insight"],
         intro=intro,
         event_summary=event_summary,
         industry_background=industry_background,
@@ -968,6 +1064,14 @@ def render_policy_interpretation_html(article_json: dict, record_id: str = "") -
     industry_impact = normalize_text(article_json.get("industry_impact"))
     advice = normalize_text(article_json.get("advice"))
     summary = normalize_text(article_json.get("summary"))
+    labels = _normalize_section_labels(article_json, {
+        "intro": "【导语】",
+        "policy_background": "【政策背景】",
+        "core_content": "【政策核心内容】",
+        "industry_impact": "【对行业的影响】",
+        "advice": "【对企业/用户的建议】",
+        "summary": "【总结】",
+    })
 
     html = """
     <!DOCTYPE html>
@@ -1064,32 +1168,32 @@ def render_policy_interpretation_html(article_json: dict, record_id: str = "") -
             <div class="article-title" contenteditable="true" data-field="title">{title}</div>
 
             <div class="section">
-                <div class="section-title">导语</div>
+                <div class="section-title" contenteditable="true" data-label="intro">{intro_label}</div>
                 <div class="paragraph" contenteditable="true" data-field="intro">{intro}</div>
             </div>
 
             <div class="section">
-                <div class="section-title">政策背景</div>
+                <div class="section-title" contenteditable="true" data-label="policy_background">{policy_background_label}</div>
                 <div class="paragraph" contenteditable="true" data-field="policy_background">{policy_background}</div>
             </div>
 
             <div class="section">
-                <div class="section-title">政策核心内容</div>
+                <div class="section-title" contenteditable="true" data-label="core_content">{core_content_label}</div>
                 <div class="paragraph" contenteditable="true" data-field="core_content">{core_content}</div>
             </div>
 
             <div class="section">
-                <div class="section-title">对行业的影响</div>
+                <div class="section-title" contenteditable="true" data-label="industry_impact">{industry_impact_label}</div>
                 <div class="paragraph" contenteditable="true" data-field="industry_impact">{industry_impact}</div>
             </div>
 
             <div class="section">
-                <div class="section-title">对企业/用户的建议</div>
+                <div class="section-title" contenteditable="true" data-label="advice">{advice_label}</div>
                 <div class="paragraph" contenteditable="true" data-field="advice">{advice}</div>
             </div>
 
             <div class="section">
-                <div class="section-title">总结</div>
+                <div class="section-title" contenteditable="true" data-label="summary">{summary_label}</div>
                 <div class="paragraph" contenteditable="true" data-field="summary">{summary}</div>
             </div>
         </div>
@@ -1122,6 +1226,14 @@ def render_policy_interpretation_html(article_json: dict, record_id: str = "") -
             function buildEditablePayload() {{
                 return {{
                     title: getNodeText('[data-field="title"]'),
+                    section_labels: {{
+                        intro: getNodeText('[data-label="intro"]'),
+                        policy_background: getNodeText('[data-label="policy_background"]'),
+                        core_content: getNodeText('[data-label="core_content"]'),
+                        industry_impact: getNodeText('[data-label="industry_impact"]'),
+                        advice: getNodeText('[data-label="advice"]'),
+                        summary: getNodeText('[data-label="summary"]')
+                    }},
                     intro: getNodeText('[data-field="intro"]'),
                     policy_background: getNodeText('[data-field="policy_background"]'),
                     core_content: getNodeText('[data-field="core_content"]'),
@@ -1138,27 +1250,27 @@ def render_policy_interpretation_html(article_json: dict, record_id: str = "") -
                 lines.push('标题：' + (payload.title || ''));
                 lines.push('');
 
-                lines.push('【导语】');
+                lines.push(payload.section_labels.intro || '【导语】');
                 lines.push(payload.intro || '');
                 lines.push('');
 
-                lines.push('【政策背景】');
+                lines.push(payload.section_labels.policy_background || '【政策背景】');
                 lines.push(payload.policy_background || '');
                 lines.push('');
 
-                lines.push('【政策核心内容】');
+                lines.push(payload.section_labels.core_content || '【政策核心内容】');
                 lines.push(payload.core_content || '');
                 lines.push('');
 
-                lines.push('【对行业的影响】');
+                lines.push(payload.section_labels.industry_impact || '【对行业的影响】');
                 lines.push(payload.industry_impact || '');
                 lines.push('');
 
-                lines.push('【对企业/用户的建议】');
+                lines.push(payload.section_labels.advice || '【对企业/用户的建议】');
                 lines.push(payload.advice || '');
                 lines.push('');
 
-                lines.push('【总结】');
+                lines.push(payload.section_labels.summary || '【总结】');
                 lines.push(payload.summary || '');
 
                 return lines.join('\\n').trim();
@@ -1223,6 +1335,12 @@ def render_policy_interpretation_html(article_json: dict, record_id: str = "") -
     </html>
     """.format(
         title=title,
+        intro_label=labels["intro"],
+        policy_background_label=labels["policy_background"],
+        core_content_label=labels["core_content"],
+        industry_impact_label=labels["industry_impact"],
+        advice_label=labels["advice"],
+        summary_label=labels["summary"],
         intro=intro,
         policy_background=policy_background,
         core_content=core_content,
@@ -1242,6 +1360,14 @@ def render_product_intro_html(article_json: dict, record_id: str = "") -> str:
     application_scenarios = normalize_text(article_json.get("application_scenarios"))
     customer_value = normalize_text(article_json.get("customer_value"))
     summary = normalize_text(article_json.get("summary"))
+    labels = _normalize_section_labels(article_json, {
+        "intro": "【导语】",
+        "product_positioning": "【产品背景/定位】",
+        "core_highlights": "【核心亮点】",
+        "application_scenarios": "【应用场景】",
+        "customer_value": "【客户价值】",
+        "summary": "【总结】",
+    })
 
     if not isinstance(highlights, list):
         highlights = [normalize_text(highlights)]
@@ -1363,32 +1489,32 @@ def render_product_intro_html(article_json: dict, record_id: str = "") -> str:
             <div class="article-title" contenteditable="true" data-field="title">{title}</div>
 
             <div class="section">
-                <div class="section-title">导语</div>
+                <div class="section-title" contenteditable="true" data-label="intro">{intro_label}</div>
                 <div class="paragraph" contenteditable="true" data-field="intro">{intro}</div>
             </div>
 
             <div class="section">
-                <div class="section-title">产品背景/定位</div>
+                <div class="section-title" contenteditable="true" data-label="product_positioning">{product_positioning_label}</div>
                 <div class="paragraph" contenteditable="true" data-field="product_positioning">{product_positioning}</div>
             </div>
 
             <div class="section">
-                <div class="section-title">核心亮点</div>
+                <div class="section-title" contenteditable="true" data-label="core_highlights">{core_highlights_label}</div>
                 <ol class="highlight-list" id="highlightList">{highlights_html}</ol>
             </div>
 
             <div class="section">
-                <div class="section-title">应用场景</div>
+                <div class="section-title" contenteditable="true" data-label="application_scenarios">{application_scenarios_label}</div>
                 <div class="paragraph" contenteditable="true" data-field="application_scenarios">{application_scenarios}</div>
             </div>
 
             <div class="section">
-                <div class="section-title">客户价值</div>
+                <div class="section-title" contenteditable="true" data-label="customer_value">{customer_value_label}</div>
                 <div class="paragraph" contenteditable="true" data-field="customer_value">{customer_value}</div>
             </div>
 
             <div class="section">
-                <div class="section-title">总结</div>
+                <div class="section-title" contenteditable="true" data-label="summary">{summary_label}</div>
                 <div class="paragraph" contenteditable="true" data-field="summary">{summary}</div>
             </div>
         </div>
@@ -1432,6 +1558,14 @@ def render_product_intro_html(article_json: dict, record_id: str = "") -> str:
             function buildEditablePayload() {{
                 return {{
                     title: getNodeText('[data-field="title"]'),
+                    section_labels: {{
+                        intro: getNodeText('[data-label="intro"]'),
+                        product_positioning: getNodeText('[data-label="product_positioning"]'),
+                        core_highlights: getNodeText('[data-label="core_highlights"]'),
+                        application_scenarios: getNodeText('[data-label="application_scenarios"]'),
+                        customer_value: getNodeText('[data-label="customer_value"]'),
+                        summary: getNodeText('[data-label="summary"]')
+                    }},
                     intro: getNodeText('[data-field="intro"]'),
                     product_positioning: getNodeText('[data-field="product_positioning"]'),
                     core_highlights: getHighlightList(),
@@ -1448,15 +1582,15 @@ def render_product_intro_html(article_json: dict, record_id: str = "") -> str:
                 lines.push('标题：' + (payload.title || ''));
                 lines.push('');
 
-                lines.push('【导语】');
+                lines.push(payload.section_labels.intro || '【导语】');
                 lines.push(payload.intro || '');
                 lines.push('');
 
-                lines.push('【产品背景/定位】');
+                lines.push(payload.section_labels.product_positioning || '【产品背景/定位】');
                 lines.push(payload.product_positioning || '');
                 lines.push('');
 
-                lines.push('【核心亮点】');
+                lines.push(payload.section_labels.core_highlights || '【核心亮点】');
                 if (payload.core_highlights && payload.core_highlights.length > 0) {{
                     payload.core_highlights.forEach(function (item, idx) {{
                         lines.push((idx + 1) + '. ' + item);
@@ -1464,15 +1598,15 @@ def render_product_intro_html(article_json: dict, record_id: str = "") -> str:
                 }}
                 lines.push('');
 
-                lines.push('【应用场景】');
+                lines.push(payload.section_labels.application_scenarios || '【应用场景】');
                 lines.push(payload.application_scenarios || '');
                 lines.push('');
 
-                lines.push('【客户价值】');
+                lines.push(payload.section_labels.customer_value || '【客户价值】');
                 lines.push(payload.customer_value || '');
                 lines.push('');
 
-                lines.push('【总结】');
+                lines.push(payload.section_labels.summary || '【总结】');
                 lines.push(payload.summary || '');
 
                 return lines.join('\\n').trim();
@@ -1537,6 +1671,12 @@ def render_product_intro_html(article_json: dict, record_id: str = "") -> str:
     </html>
     """.format(
         title=title,
+        intro_label=labels["intro"],
+        product_positioning_label=labels["product_positioning"],
+        core_highlights_label=labels["core_highlights"],
+        application_scenarios_label=labels["application_scenarios"],
+        customer_value_label=labels["customer_value"],
+        summary_label=labels["summary"],
         intro=intro,
         product_positioning=product_positioning,
         highlights_html=highlights_html,
@@ -1556,6 +1696,14 @@ def render_case_analysis_html(article_json: dict, record_id: str = "") -> str:
     solution = normalize_text(article_json.get("solution"))
     result = normalize_text(article_json.get("result"))
     insight = normalize_text(article_json.get("insight"))
+    labels = _normalize_section_labels(article_json, {
+        "intro": "【导语】",
+        "project_background": "【项目背景】",
+        "pain_points": "【项目难点/痛点】",
+        "solution": "【解决方案】",
+        "result": "【实施效果】",
+        "insight": "【总结与启示】",
+    })
 
     html = """
     <!DOCTYPE html>
@@ -1652,32 +1800,32 @@ def render_case_analysis_html(article_json: dict, record_id: str = "") -> str:
             <div class="article-title" contenteditable="true" data-field="title">{title}</div>
 
             <div class="section">
-                <div class="section-title">导语</div>
+                <div class="section-title" contenteditable="true" data-label="intro">{intro_label}</div>
                 <div class="paragraph" contenteditable="true" data-field="intro">{intro}</div>
             </div>
 
             <div class="section">
-                <div class="section-title">项目背景</div>
+                <div class="section-title" contenteditable="true" data-label="project_background">{project_background_label}</div>
                 <div class="paragraph" contenteditable="true" data-field="project_background">{project_background}</div>
             </div>
 
             <div class="section">
-                <div class="section-title">项目难点/痛点</div>
+                <div class="section-title" contenteditable="true" data-label="pain_points">{pain_points_label}</div>
                 <div class="paragraph" contenteditable="true" data-field="pain_points">{pain_points}</div>
             </div>
 
             <div class="section">
-                <div class="section-title">解决方案</div>
+                <div class="section-title" contenteditable="true" data-label="solution">{solution_label}</div>
                 <div class="paragraph" contenteditable="true" data-field="solution">{solution}</div>
             </div>
 
             <div class="section">
-                <div class="section-title">实施效果</div>
+                <div class="section-title" contenteditable="true" data-label="result">{result_label}</div>
                 <div class="paragraph" contenteditable="true" data-field="result">{result}</div>
             </div>
 
             <div class="section">
-                <div class="section-title">总结与启示</div>
+                <div class="section-title" contenteditable="true" data-label="insight">{insight_label}</div>
                 <div class="paragraph" contenteditable="true" data-field="insight">{insight}</div>
             </div>
         </div>
@@ -1710,6 +1858,14 @@ def render_case_analysis_html(article_json: dict, record_id: str = "") -> str:
             function buildEditablePayload() {{
                 return {{
                     title: getNodeText('[data-field="title"]'),
+                    section_labels: {{
+                        intro: getNodeText('[data-label="intro"]'),
+                        project_background: getNodeText('[data-label="project_background"]'),
+                        pain_points: getNodeText('[data-label="pain_points"]'),
+                        solution: getNodeText('[data-label="solution"]'),
+                        result: getNodeText('[data-label="result"]'),
+                        insight: getNodeText('[data-label="insight"]')
+                    }},
                     intro: getNodeText('[data-field="intro"]'),
                     project_background: getNodeText('[data-field="project_background"]'),
                     pain_points: getNodeText('[data-field="pain_points"]'),
@@ -1726,27 +1882,27 @@ def render_case_analysis_html(article_json: dict, record_id: str = "") -> str:
                 lines.push('标题：' + (payload.title || ''));
                 lines.push('');
 
-                lines.push('【导语】');
+                lines.push(payload.section_labels.intro || '【导语】');
                 lines.push(payload.intro || '');
                 lines.push('');
 
-                lines.push('【项目背景】');
+                lines.push(payload.section_labels.project_background || '【项目背景】');
                 lines.push(payload.project_background || '');
                 lines.push('');
 
-                lines.push('【项目难点/痛点】');
+                lines.push(payload.section_labels.pain_points || '【项目难点/痛点】');
                 lines.push(payload.pain_points || '');
                 lines.push('');
 
-                lines.push('【解决方案】');
+                lines.push(payload.section_labels.solution || '【解决方案】');
                 lines.push(payload.solution || '');
                 lines.push('');
 
-                lines.push('【实施效果】');
+                lines.push(payload.section_labels.result || '【实施效果】');
                 lines.push(payload.result || '');
                 lines.push('');
 
-                lines.push('【总结与启示】');
+                lines.push(payload.section_labels.insight || '【总结与启示】');
                 lines.push(payload.insight || '');
 
                 return lines.join('\\n').trim();
@@ -1811,6 +1967,12 @@ def render_case_analysis_html(article_json: dict, record_id: str = "") -> str:
     </html>
     """.format(
         title=title,
+        intro_label=labels["intro"],
+        project_background_label=labels["project_background"],
+        pain_points_label=labels["pain_points"],
+        solution_label=labels["solution"],
+        result_label=labels["result"],
+        insight_label=labels["insight"],
         intro=intro,
         project_background=project_background,
         pain_points=pain_points,

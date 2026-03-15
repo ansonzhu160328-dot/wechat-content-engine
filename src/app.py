@@ -19,6 +19,7 @@ app = Flask(__name__)
 ARTICLE_HTML_CACHE = {}
 ARTICLE_META_CACHE = {}
 JOB_STATUS_CACHE = {}
+AUTO_PREVIEW_TEMPLATES = {"技术科普", "行业新闻"}
 
 # =========================
 # 从 config.yaml 读取配置
@@ -168,7 +169,7 @@ def background_generate_job(form_data: dict, job_id: str = ""):
             log(f"HTML预览已缓存，record_id = {record_id}")
             log(f"预览地址：http://127.0.0.1:{PORT}/article/{record_id}")
 
-            if job_id and template == "技术科普":
+            if job_id and template in AUTO_PREVIEW_TEMPLATES:
                 JOB_STATUS_CACHE[job_id] = {
                     "status": "done",
                     "record_id": record_id,
@@ -179,7 +180,7 @@ def background_generate_job(form_data: dict, job_id: str = ""):
         log("后台任务失败：", repr(e))
         traceback.print_exc()
 
-        if job_id and normalize_text(form_data.get("template", "")) == "技术科普":
+        if job_id and normalize_text(form_data.get("template", "")) in AUTO_PREVIEW_TEMPLATES:
             JOB_STATUS_CACHE[job_id] = {
                 "status": "failed",
                 "record_id": "",
@@ -357,16 +358,16 @@ PAGE_HTML = """
                 </div>
             </form>
 
-            {% if success and not is_tech_pop %}
+            {% if success and not auto_preview_enabled %}
             <div class="success-box">
                 <strong>已提交成功。</strong><br>
                 系统正在后台生成文章，并写入飞书草稿库。请稍后到草稿库中查看结果。
             </div>
             {% endif %}
 
-            {% if success and is_tech_pop %}
+            {% if success and auto_preview_enabled %}
             <div class="success-box" id="jobStatusBox">
-                <strong>正在生成技术科普文章，请稍候...</strong><br>
+                <strong>正在生成{{ auto_preview_label }}，请稍候...</strong><br>
                 生成完成后将自动跳转到预览页。
             </div>
             {% endif %}
@@ -377,11 +378,11 @@ PAGE_HTML = """
         </div>
     </div>
     <script>
-        const isTechPop = {{ 'true' if is_tech_pop else 'false' }};
+        const autoPreviewEnabled = {{ 'true' if auto_preview_enabled else 'false' }};
         const currentJobId = "{{ job_id or '' }}";
 
         async function pollJobStatus() {
-            if (!isTechPop || !currentJobId) {
+            if (!autoPreviewEnabled || !currentJobId) {
                 return;
             }
 
@@ -433,7 +434,13 @@ def health():
 
 @app.route("/", methods=["GET"])
 def index():
-    return render_template_string(PAGE_HTML, success=False, is_tech_pop=False, job_id="")
+    return render_template_string(
+        PAGE_HTML,
+        success=False,
+        auto_preview_enabled=False,
+        auto_preview_label="",
+        job_id=""
+    )
 
 
 @app.route("/submit_generate", methods=["POST"])
@@ -449,9 +456,10 @@ def submit_generate():
 
         log("收到网页表单提交：", json.dumps(form_data, ensure_ascii=False))
 
-        is_tech_pop = form_data["template"] == "技术科普"
+        auto_preview_enabled = form_data["template"] in AUTO_PREVIEW_TEMPLATES
+        auto_preview_label = form_data["template"]
         job_id = ""
-        if is_tech_pop:
+        if auto_preview_enabled:
             job_id = uuid.uuid4().hex
             JOB_STATUS_CACHE[job_id] = {
                 "status": "pending",
@@ -469,7 +477,8 @@ def submit_generate():
         return render_template_string(
             PAGE_HTML,
             success=True,
-            is_tech_pop=is_tech_pop,
+            auto_preview_enabled=auto_preview_enabled,
+            auto_preview_label=auto_preview_label,
             job_id=job_id
         )
 

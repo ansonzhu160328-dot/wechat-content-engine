@@ -13,8 +13,10 @@ from prompt_builder import normalize_text
 from doubao_client import (
     call_doubao_generate,
     format_industry_news,
+    format_policy_interpretation,
     format_tech_pop,
     render_industry_news_html,
+    render_policy_interpretation_html,
     render_tech_pop_html,
 )
 from config_loader import load_config
@@ -531,6 +533,10 @@ def save_tech_pop_article(record_id):
             title, body = format_industry_news(payload)
             html = render_industry_news_html(payload, record_id=record_id)
             ARTICLE_META_CACHE[record_id] = {"template": "行业新闻"}
+        elif template == "政策解读":
+            title, body = format_policy_interpretation(payload)
+            html = render_policy_interpretation_html(payload, record_id=record_id)
+            ARTICLE_META_CACHE[record_id] = {"template": "政策解读"}
         else:
             return jsonify({"ok": False, "message": "当前模板暂不支持保存"}), 400
 

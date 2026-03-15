@@ -3,6 +3,7 @@ import os
 import json
 import threading
 import traceback
+import uuid
 from datetime import datetime
 
 import requests
@@ -17,6 +18,7 @@ CONFIG = load_config()
 app = Flask(__name__)
 ARTICLE_HTML_CACHE = {}
 ARTICLE_META_CACHE = {}
+JOB_STATUS_CACHE = {}
 
 # =========================
 # 从 config.yaml 读取配置
@@ -102,8 +104,6 @@ def write_to_bitable(form_data: dict, article_data: dict) -> dict:
     return data
 
 
-
-
 def update_bitable_record(record_id: str, title: str, body: str) -> dict:
     token = get_feishu_tenant_access_token()
 
@@ -135,9 +135,12 @@ def update_bitable_record(record_id: str, title: str, body: str) -> dict:
     log("飞书多维表格更新成功")
     return data
 
-def background_generate_job(form_data: dict):
+
+def background_generate_job(form_data: dict, job_id: str = ""):
     try:
         log("后台任务启动，form_data =", json.dumps(form_data, ensure_ascii=False))
+
+        template = normalize_text(form_data.get("template", ""))
 
         article_data = call_doubao_generate(
             form_data=form_data,
@@ -165,9 +168,23 @@ def background_generate_job(form_data: dict):
             log(f"HTML预览已缓存，record_id = {record_id}")
             log(f"预览地址：http://127.0.0.1:{PORT}/article/{record_id}")
 
+            if job_id and template == "技术科普":
+                JOB_STATUS_CACHE[job_id] = {
+                    "status": "done",
+                    "record_id": record_id,
+                    "message": "生成成功"
+                }
+
     except Exception as e:
         log("后台任务失败：", repr(e))
         traceback.print_exc()
+
+        if job_id and normalize_text(form_data.get("template", "")) == "技术科普":
+            JOB_STATUS_CACHE[job_id] = {
+                "status": "failed",
+                "record_id": "",
+                "message": str(e)
+            }
 
 
 PAGE_HTML = """
@@ -340,10 +357,17 @@ PAGE_HTML = """
                 </div>
             </form>
 
-            {% if success %}
+            {% if success and not is_tech_pop %}
             <div class="success-box">
                 <strong>已提交成功。</strong><br>
                 系统正在后台生成文章，并写入飞书草稿库。请稍后到草稿库中查看结果。
+            </div>
+            {% endif %}
+
+            {% if success and is_tech_pop %}
+            <div class="success-box" id="jobStatusBox">
+                <strong>正在生成技术科普文章，请稍候...</strong><br>
+                生成完成后将自动跳转到预览页。
             </div>
             {% endif %}
 
@@ -352,6 +376,48 @@ PAGE_HTML = """
             </div>
         </div>
     </div>
+    <script>
+        const isTechPop = {{ 'true' if is_tech_pop else 'false' }};
+        const currentJobId = "{{ job_id or '' }}";
+
+        async function pollJobStatus() {
+            if (!isTechPop || !currentJobId) {
+                return;
+            }
+
+            const statusBox = document.getElementById("jobStatusBox");
+            const intervalId = setInterval(async function () {
+                try {
+                    const resp = await fetch("/job_status/" + currentJobId, {
+                        method: "GET",
+                        cache: "no-store"
+                    });
+
+                    if (!resp.ok) {
+                        return;
+                    }
+
+                    const data = await resp.json();
+                    if (data.status === "done" && data.record_id) {
+                        clearInterval(intervalId);
+                        window.location.href = "/article/" + data.record_id;
+                        return;
+                    }
+
+                    if (data.status === "failed") {
+                        clearInterval(intervalId);
+                        if (statusBox) {
+                            statusBox.innerHTML = "<strong>生成失败。</strong><br>" + (data.message || "请稍后重试");
+                        }
+                    }
+                } catch (err) {
+                    console.log("[job-poll] polling failed:", err);
+                }
+            }, 2000);
+        }
+
+        pollJobStatus();
+    </script>
 </body>
 </html>
 """
@@ -367,7 +433,7 @@ def health():
 
 @app.route("/", methods=["GET"])
 def index():
-    return render_template_string(PAGE_HTML, success=False)
+    return render_template_string(PAGE_HTML, success=False, is_tech_pop=False, job_id="")
 
 
 @app.route("/submit_generate", methods=["POST"])
@@ -383,19 +449,42 @@ def submit_generate():
 
         log("收到网页表单提交：", json.dumps(form_data, ensure_ascii=False))
 
+        is_tech_pop = form_data["template"] == "技术科普"
+        job_id = ""
+        if is_tech_pop:
+            job_id = uuid.uuid4().hex
+            JOB_STATUS_CACHE[job_id] = {
+                "status": "pending",
+                "record_id": "",
+                "message": "正在生成"
+            }
+
         t = threading.Thread(
             target=background_generate_job,
-            args=(form_data,),
+            args=(form_data, job_id),
             daemon=True
         )
         t.start()
 
-        return render_template_string(PAGE_HTML, success=True)
+        return render_template_string(
+            PAGE_HTML,
+            success=True,
+            is_tech_pop=is_tech_pop,
+            job_id=job_id
+        )
 
     except Exception as e:
         log("submit_generate 异常：", repr(e))
         traceback.print_exc()
         return f"提交失败：{str(e)}", 500
+
+
+@app.route("/job_status/<job_id>", methods=["GET"])
+def job_status(job_id):
+    status = JOB_STATUS_CACHE.get(job_id)
+    if not status:
+        return jsonify({"status": "not_found", "record_id": "", "message": "任务不存在"}), 404
+    return jsonify(status)
 
 
 @app.route("/article/<record_id>", methods=["GET"])

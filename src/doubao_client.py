@@ -500,6 +500,12 @@ def render_tech_pop_html(article_json: dict, record_id: str = "") -> str:
                 border-radius: 8px;
                 margin-bottom: 10px;
             }}
+            .intro-title {{
+                font-size: 18px;
+                font-weight: bold;
+                margin-bottom: 8px;
+                color: #111827;
+            }}
             .section-block {{
                 margin-bottom: 30px;
             }}

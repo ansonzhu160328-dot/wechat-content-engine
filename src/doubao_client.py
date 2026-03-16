@@ -472,21 +472,33 @@ def render_tech_pop_html(article_json: dict, record_id: str = "") -> str:
                 background: #15803d;
             }}
             .article-title {{
-                font-size: 30px;
-                font-weight: bold;
-                line-height: 1.4;
-                margin-bottom: 24px;
-                color: #111;
+                font-size: 34px;
+                font-weight: 700;
+                line-height: 1.35;
+                margin-bottom: 26px;
+                color: #1e3a8a;
                 text-align: center;
+                letter-spacing: 0.2px;
             }}
             .intro-box {{
-                background: #f7fbff;
-                border-left: 5px solid #2f7cf6;
-                padding: 18px 18px;
-                line-height: 1.9;
+                background: #f8fbff;
+                border: 1px solid #d7e7ff;
+                border-radius: 10px;
+                padding: 16px 18px;
+                line-height: 1.92;
                 font-size: 16px;
-                margin-bottom: 28px;
-                color: #333;
+                margin-bottom: 26px;
+                color: #2b3442;
+            }}
+            .intro-title {{
+                font-size: 18px;
+                font-weight: 700;
+                color: #1e40af;
+                background: #eef4ff;
+                border-left: 4px solid #3b82f6;
+                padding: 9px 12px;
+                border-radius: 8px;
+                margin-bottom: 10px;
             }}
             .intro-title {{
                 font-size: 18px;
@@ -498,27 +510,28 @@ def render_tech_pop_html(article_json: dict, record_id: str = "") -> str:
                 margin-bottom: 30px;
             }}
             .section-title {{
-                font-size: 22px;
-                font-weight: bold;
-                color: #fff;
-                background: linear-gradient(90deg, #ff9f2f, #ff7f2a);
-                display: inline-block;
-                padding: 8px 16px;
-                border-radius: 6px;
-                margin-bottom: 16px;
+                font-size: 18px;
+                font-weight: 700;
+                color: #1e40af;
+                background: #eef4ff;
+                border-left: 4px solid #3b82f6;
+                display: block;
+                padding: 9px 12px;
+                border-radius: 8px;
+                margin-bottom: 12px;
             }}
             .sub-title {{
-                font-size: 18px;
-                font-weight: bold;
-                color: #1f4fa3;
-                margin: 18px 0 10px;
+                font-size: 17px;
+                font-weight: 700;
+                color: #1f3b7a;
+                margin: 16px 0 10px;
                 line-height: 1.6;
             }}
             .paragraph {{
                 font-size: 16px;
-                line-height: 1.95;
-                color: #333;
-                margin-bottom: 10px;
+                line-height: 1.92;
+                color: #2b3442;
+                margin-bottom: 12px;
                 white-space: pre-wrap;
             }}
             .image-hint {{
@@ -532,17 +545,21 @@ def render_tech_pop_html(article_json: dict, record_id: str = "") -> str:
                 line-height: 1.7;
             }}
             .summary-box {{
-                margin-top: 34px;
-                padding: 18px;
-                background: #f9fafb;
-                border: 1px solid #e5e7eb;
+                margin-top: 30px;
+                padding: 16px;
+                background: #f8fbff;
+                border: 1px solid #d7e7ff;
                 border-radius: 10px;
             }}
             .summary-title {{
                 font-size: 18px;
-                font-weight: bold;
+                font-weight: 700;
+                color: #1e40af;
+                background: #eef4ff;
+                border-left: 4px solid #3b82f6;
+                padding: 9px 12px;
+                border-radius: 8px;
                 margin-bottom: 12px;
-                color: #111827;
             }}
         </style>
     </head>
@@ -843,32 +860,38 @@ def render_industry_news_html(article_json: dict, record_id: str = "") -> str:
                 background: #15803d;
             }}
             .article-title {{
-                font-size: 30px;
-                font-weight: bold;
-                line-height: 1.4;
-                margin-bottom: 24px;
-                color: #111;
+                font-size: 34px;
+                font-weight: 700;
+                line-height: 1.35;
+                margin-bottom: 26px;
+                color: #1e3a8a;
                 text-align: center;
+                letter-spacing: 0.2px;
             }}
             .section {{
                 margin-top: 20px;
             }}
             .section-title {{
-                font-size: 20px;
-                font-weight: bold;
-                color: #111827;
+                font-size: 18px;
+                font-weight: 700;
+                color: #1e40af;
+                background: #eef4ff;
+                border-left: 4px solid #3b82f6;
+                padding: 9px 12px;
+                border-radius: 8px;
                 margin-bottom: 10px;
             }}
             .paragraph {{
                 font-size: 16px;
-                line-height: 1.9;
-                color: #2f3a4a;
+                line-height: 1.92;
+                color: #2b3442;
                 white-space: pre-wrap;
             }}
             [contenteditable="true"]:focus {{
-                outline: 2px solid #93c5fd;
+                outline: 1px solid #3b82f6;
                 border-radius: 6px;
-                background: #f8fbff;
+                background: #f5f9ff;
+                box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.18);
             }}
         </style>
     </head>
@@ -1129,32 +1152,38 @@ def render_policy_interpretation_html(article_json: dict, record_id: str = "") -
                 background: #15803d;
             }}
             .article-title {{
-                font-size: 30px;
-                font-weight: bold;
-                line-height: 1.4;
-                margin-bottom: 24px;
-                color: #111;
+                font-size: 34px;
+                font-weight: 700;
+                line-height: 1.35;
+                margin-bottom: 26px;
+                color: #1e3a8a;
                 text-align: center;
+                letter-spacing: 0.2px;
             }}
             .section {{
                 margin-top: 20px;
             }}
             .section-title {{
-                font-size: 20px;
-                font-weight: bold;
-                color: #111827;
+                font-size: 18px;
+                font-weight: 700;
+                color: #1e40af;
+                background: #eef4ff;
+                border-left: 4px solid #3b82f6;
+                padding: 9px 12px;
+                border-radius: 8px;
                 margin-bottom: 10px;
             }}
             .paragraph {{
                 font-size: 16px;
-                line-height: 1.9;
-                color: #2f3a4a;
+                line-height: 1.92;
+                color: #2b3442;
                 white-space: pre-wrap;
             }}
             [contenteditable="true"]:focus {{
-                outline: 2px solid #93c5fd;
+                outline: 1px solid #3b82f6;
                 border-radius: 6px;
-                background: #f8fbff;
+                background: #f5f9ff;
+                box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.18);
             }}
         </style>
     </head>
@@ -1440,26 +1469,31 @@ def render_product_intro_html(article_json: dict, record_id: str = "") -> str:
                 background: #15803d;
             }}
             .article-title {{
-                font-size: 30px;
-                font-weight: bold;
-                line-height: 1.4;
-                margin-bottom: 24px;
-                color: #111;
+                font-size: 34px;
+                font-weight: 700;
+                line-height: 1.35;
+                margin-bottom: 26px;
+                color: #1e3a8a;
                 text-align: center;
+                letter-spacing: 0.2px;
             }}
             .section {{
                 margin-top: 20px;
             }}
             .section-title {{
-                font-size: 20px;
-                font-weight: bold;
-                color: #111827;
+                font-size: 18px;
+                font-weight: 700;
+                color: #1e40af;
+                background: #eef4ff;
+                border-left: 4px solid #3b82f6;
+                padding: 9px 12px;
+                border-radius: 8px;
                 margin-bottom: 10px;
             }}
             .paragraph {{
                 font-size: 16px;
-                line-height: 1.9;
-                color: #2f3a4a;
+                line-height: 1.92;
+                color: #2b3442;
                 white-space: pre-wrap;
             }}
             .highlight-list {{
@@ -1468,14 +1502,15 @@ def render_product_intro_html(article_json: dict, record_id: str = "") -> str:
             }}
             .highlight-item {{
                 font-size: 16px;
-                line-height: 1.9;
-                color: #2f3a4a;
+                line-height: 1.92;
+                color: #2b3442;
                 margin-bottom: 6px;
             }}
             [contenteditable="true"]:focus {{
-                outline: 2px solid #93c5fd;
+                outline: 1px solid #3b82f6;
                 border-radius: 6px;
-                background: #f8fbff;
+                background: #f5f9ff;
+                box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.18);
             }}
         </style>
     </head>
@@ -1761,32 +1796,38 @@ def render_case_analysis_html(article_json: dict, record_id: str = "") -> str:
                 background: #15803d;
             }}
             .article-title {{
-                font-size: 30px;
-                font-weight: bold;
-                line-height: 1.4;
-                margin-bottom: 24px;
-                color: #111;
+                font-size: 34px;
+                font-weight: 700;
+                line-height: 1.35;
+                margin-bottom: 26px;
+                color: #1e3a8a;
                 text-align: center;
+                letter-spacing: 0.2px;
             }}
             .section {{
                 margin-top: 20px;
             }}
             .section-title {{
-                font-size: 20px;
-                font-weight: bold;
-                color: #111827;
+                font-size: 18px;
+                font-weight: 700;
+                color: #1e40af;
+                background: #eef4ff;
+                border-left: 4px solid #3b82f6;
+                padding: 9px 12px;
+                border-radius: 8px;
                 margin-bottom: 10px;
             }}
             .paragraph {{
                 font-size: 16px;
-                line-height: 1.9;
-                color: #2f3a4a;
+                line-height: 1.92;
+                color: #2b3442;
                 white-space: pre-wrap;
             }}
             [contenteditable="true"]:focus {{
-                outline: 2px solid #93c5fd;
+                outline: 1px solid #3b82f6;
                 border-radius: 6px;
-                background: #f8fbff;
+                background: #f5f9ff;
+                box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.18);
             }}
         </style>
     </head>

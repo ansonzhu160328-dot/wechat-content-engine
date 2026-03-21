@@ -15,7 +15,7 @@ if str(SRC_DIR) not in sys.path:
 from config_loader import load_config
 
 
-MODEL_NAME = "ep-20260322001504-7hlz2"
+DEFAULT_ENDPOINT_ID = "ep-20260322001504-7hlz2"
 TEST_INPUT = "重卡充电站投资逻辑是什么？"
 TIMEOUT_SECONDS = 60
 
@@ -34,17 +34,26 @@ def main() -> int:
 
     api_key = doubao_config.get("api_key")
     base_url = doubao_config.get("base_url")
+    endpoint_id = doubao_config.get("endpoint_id") or DEFAULT_ENDPOINT_ID
     if not isinstance(api_key, str) or not api_key.strip():
         print("[FAIL] doubao.api_key 配置无效")
         return 1
     if not isinstance(base_url, str) or not base_url.strip():
         print("[FAIL] doubao.base_url 配置无效")
         return 1
+    if not isinstance(endpoint_id, str) or not endpoint_id.strip():
+        print("[FAIL] doubao.endpoint_id 配置无效")
+        return 1
 
-    endpoint = f"{base_url.rstrip('/')}/embeddings"
+    endpoint = f"{base_url.rstrip('/')}/embeddings/multimodal"
     payload = {
-        "model": MODEL_NAME,
-        "input": TEST_INPUT,
+        "model": endpoint_id,
+        "input": [
+            {
+                "type": "text",
+                "text": TEST_INPUT,
+            }
+        ],
     }
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -52,7 +61,7 @@ def main() -> int:
     }
 
     print(f"请求地址: {endpoint}")
-    print(f"模型: {MODEL_NAME}")
+    print(f"模型: {endpoint_id}")
     print(f"输入文本: {TEST_INPUT}")
 
     try:
@@ -67,6 +76,19 @@ def main() -> int:
         print(f"[FAIL] 响应 JSON 解析失败: {exc}")
         return 1
 
+    try:
+        embedding = result["data"][0]["embedding"]
+    except (KeyError, IndexError, TypeError) as exc:
+        print(f"[FAIL] 响应缺少 embedding 向量: {exc}; 原始响应: {result}")
+        return 1
+
+    if not isinstance(embedding, list) or not embedding:
+        print(f"[FAIL] 响应缺少 embedding 向量: {result}")
+        return 1
+
+    print("[OK] embedding 调用成功")
+    print(f"向量长度: {len(embedding)}")
+    print(f"前5个值: {embedding[:5]}")
     data = result.get("data")
     if not isinstance(data, list) or not data:
         print(f"[FAIL] 响应缺少 data: {result}")

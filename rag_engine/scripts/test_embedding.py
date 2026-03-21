@@ -76,12 +76,12 @@ def main() -> int:
         print(f"[FAIL] 响应 JSON 解析失败: {exc}")
         return 1
 
-    try:
-        embedding = result["data"][0]["embedding"]
-    except (KeyError, IndexError, TypeError) as exc:
-        print(f"[FAIL] 响应缺少 embedding 向量: {exc}; 原始响应: {result}")
+    data = result.get("data")
+    if not isinstance(data, dict):
+        print(f"[FAIL] 响应缺少 data: {result}")
         return 1
 
+    embedding = data.get("embedding")
     if not isinstance(embedding, list) or not embedding:
         print(f"[FAIL] 响应缺少 embedding 向量: {result}")
         return 1
@@ -89,24 +89,6 @@ def main() -> int:
     print("[OK] embedding 调用成功")
     print(f"向量长度: {len(embedding)}")
     print(f"前5个值: {embedding[:5]}")
-    data = result.get("data")
-    if not isinstance(data, list) or not data:
-        print(f"[FAIL] 响应缺少 data: {result}")
-        return 1
-
-    first_item = data[0]
-    if not isinstance(first_item, dict):
-        print(f"[FAIL] data[0] 格式无效: {first_item}")
-        return 1
-
-    embedding = first_item.get("embedding")
-    if not isinstance(embedding, list) or not embedding:
-        print(f"[FAIL] 响应缺少 embedding 向量: {first_item}")
-        return 1
-
-    print(f"向量长度: {len(embedding)}")
-    print(f"前5个数值: {embedding[:5]}")
-    print("[OK] embedding 接口连通")
     return 0
 
 

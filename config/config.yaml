@@ -21,3 +21,14 @@ feishu:
 paths:
   logs_dir: "logs"
   data_dir: "data"
+
+rag:
+  enabled: true
+  knowledge_base_dir: "knowledge_base/golden_docs"
+  chunk_output_file: "rag_engine/output/rag_data.json"
+
+  # 试点文档（先只做3篇）
+  pilot_files:
+    - "B01-行业认知-重卡充电基础认知-v1-2026-03-17.md"
+    - "B03-项目规划-场地规划与选址逻辑-v1-2026-03-17.md"
+    - "B07-投资测算-投资成本与收益测算-v1-2026-03-17.md"

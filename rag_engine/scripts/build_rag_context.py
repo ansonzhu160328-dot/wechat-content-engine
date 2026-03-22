@@ -7,26 +7,25 @@ from search_rag import (
     QUERY,
     TOP_K,
     VECTOR_PATH,
-    cosine_similarity,
+    collect_ranked_rows,
     fetch_query_embedding,
     load_client_config,
     load_vectors,
 )
-import requests
 
 
 OUTPUT_PATH = (PROJECT_ROOT / "rag_engine" / "output" / "rag_context.txt").resolve()
 
 
-def format_context(top_rows: list[tuple[float, dict[str, object]]]) -> str:
+def format_context(top_rows: list[dict[str, object]]) -> str:
     sections = [f"Query: {QUERY}", "", "以下为可用于写稿的 RAG 知识上下文："]
-    for index, (score, row) in enumerate(top_rows, start=1):
+    for index, row in enumerate(top_rows, start=1):
         sections.extend(
             [
                 f"知识片段 {index}",
                 f"来源文档：{row.get('doc_title', '')}",
                 f"章节：{row.get('section_title', '')}",
-                f"相似度：{score:.4f}",
+                f"相似度：{float(row.get('rerank_score', 0.0)):.4f}",
                 f"内容：{row.get('content', '')}",
                 "",
             ]
@@ -59,18 +58,7 @@ def main() -> int:
         print(f"[FAIL] query embedding 解析失败: {exc}")
         return 1
 
-    scored_rows: list[tuple[float, dict[str, object]]] = []
-    for row in rows:
-        embedding = row.get("embedding")
-        if not isinstance(embedding, list) or not embedding:
-            continue
-        try:
-            score = cosine_similarity(query_embedding, embedding)
-        except ValueError:
-            continue
-        scored_rows.append((score, row))
-
-    top_rows = sorted(scored_rows, key=lambda item: item[0], reverse=True)[:TOP_K]
+    top_rows = collect_ranked_rows(query_embedding, rows)[:TOP_K]
     if not top_rows:
         print(f"Query: {QUERY}")
         print("[FAIL] 未找到可用检索结果")

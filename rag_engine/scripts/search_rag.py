@@ -23,6 +23,9 @@ QUERY = "重卡充电站投资逻辑是什么？"
 TIMEOUT_SECONDS = 60
 TOP_K = 3
 PREVIEW_LENGTH = 120
+LOW_VALUE_KEYWORDS = ("关键词", "来源信息", "时效性", "禁用/慎用表述")
+SUMMARY_KEYWORDS = ("文档摘要", "适用写作场景")
+CORE_SECTION_MARKERS = ("3.", "3.1", "3.2", "3.3", "3.4", "3.5", "3.6", "3.7", "3.8", "3.9")
 
 
 def load_client_config() -> tuple[str, str]:
@@ -110,6 +113,41 @@ def cosine_similarity(left: list[float], right: list[float]) -> float:
     return dot / (left_norm * right_norm)
 
 
+def is_low_value_section(section_title: str) -> bool:
+    return any(keyword in section_title for keyword in LOW_VALUE_KEYWORDS)
+
+
+def compute_rerank_score(section_title: str, similarity: float) -> float:
+    if section_title.startswith("3.") or any(marker in section_title for marker in CORE_SECTION_MARKERS):
+        return similarity + 0.08
+    if any(keyword in section_title for keyword in SUMMARY_KEYWORDS):
+        return similarity - 0.03
+    return similarity
+
+
+def collect_ranked_rows(query_embedding: list[float], rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    ranked_rows: list[dict[str, object]] = []
+    for row in rows:
+        embedding = row.get("embedding")
+        section_title = str(row.get("section_title", ""))
+        if not isinstance(embedding, list) or not embedding:
+            continue
+        if is_low_value_section(section_title):
+            continue
+        try:
+            similarity = cosine_similarity(query_embedding, embedding)
+        except ValueError:
+            continue
+
+        ranked_row = dict(row)
+        ranked_row["similarity"] = similarity
+        ranked_row["rerank_score"] = compute_rerank_score(section_title, similarity)
+        ranked_rows.append(ranked_row)
+
+    ranked_rows.sort(key=lambda item: float(item["rerank_score"]), reverse=True)
+    return ranked_rows
+
+
 def main() -> int:
     try:
         api_key, base_url = load_client_config()
@@ -135,24 +173,13 @@ def main() -> int:
         print(f"[FAIL] query embedding 解析失败: {exc}")
         return 1
 
-    scored_rows: list[tuple[float, dict[str, object]]] = []
-    for row in rows:
-        embedding = row.get("embedding")
-        if not isinstance(embedding, list) or not embedding:
-            continue
-        try:
-            score = cosine_similarity(query_embedding, embedding)
-        except ValueError:
-            continue
-        scored_rows.append((score, row))
-
-    top_rows = sorted(scored_rows, key=lambda item: item[0], reverse=True)[:TOP_K]
+    top_rows = collect_ranked_rows(query_embedding, rows)[:TOP_K]
     print(f"Query: {QUERY}")
     if not top_rows:
         print("[FAIL] 未找到可用检索结果")
         return 1
 
-    for index, (score, row) in enumerate(top_rows, start=1):
+    for index, row in enumerate(top_rows, start=1):
         content = str(row.get("content", ""))
         preview = content[:PREVIEW_LENGTH]
         print("-" * 60)
@@ -160,7 +187,8 @@ def main() -> int:
         print(f"chunk_id: {row.get('chunk_id', '')}")
         print(f"doc_title: {row.get('doc_title', '')}")
         print(f"section_title: {row.get('section_title', '')}")
-        print(f"score: {score:.6f}")
+        print(f"similarity: {float(row.get('similarity', 0.0)):.6f}")
+        print(f"rerank_score: {float(row.get('rerank_score', 0.0)):.6f}")
         print(f"content: {preview}")
 
     print(f"[OK] 返回 top {len(top_rows)} 结果")

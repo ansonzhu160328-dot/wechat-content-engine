@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import requests
-
 from search_rag import (
     PROJECT_ROOT,
     QUERY,

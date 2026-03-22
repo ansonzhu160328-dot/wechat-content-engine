@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
 
+import sys
+from pathlib import Path
+
+from config_loader import load_config
+
+
 def normalize_text(value) -> str:
     if value is None:
         return ""
@@ -115,7 +121,7 @@ def article_json_schema_for_template(template: str) -> str:
 """.strip()
 
 
-def build_prompt(form_data: dict) -> str:
+def _build_original_prompt(form_data: dict) -> str:
     template = normalize_text(form_data.get("template", "行业新闻"))
     requirement = normalize_text(form_data.get("requirement", ""))
     content1 = normalize_text(form_data.get("content1", ""))
@@ -222,3 +228,78 @@ def build_prompt(form_data: dict) -> str:
 """.strip()
 
     return prompt
+
+
+def _load_rag_helpers():
+    project_root = Path(__file__).resolve().parents[1]
+    rag_scripts_dir = project_root / "rag_engine" / "scripts"
+    if str(rag_scripts_dir) not in sys.path:
+        sys.path.insert(0, str(rag_scripts_dir))
+
+    from build_rag_context import _SimpleSession, format_context
+    from search_rag import collect_ranked_rows, fetch_query_embedding, load_vectors
+
+    return _SimpleSession, format_context, collect_ranked_rows, fetch_query_embedding, load_vectors
+
+
+def build_enhanced_prompt(user_query: str, original_prompt_inputs: dict | str, config: dict) -> str:
+    original_prompt = (
+        original_prompt_inputs
+        if isinstance(original_prompt_inputs, str)
+        else _build_original_prompt(original_prompt_inputs)
+    )
+
+    rag_config = config.get("rag") if isinstance(config, dict) else {}
+    if not isinstance(rag_config, dict) or not rag_config.get("enabled", False):
+        print("[RAG] disabled")
+        return original_prompt
+
+    try:
+        _SimpleSession, format_context, collect_ranked_rows, fetch_query_embedding, load_vectors = _load_rag_helpers()
+        rows = load_vectors()
+        if not rows:
+            raise RuntimeError("向量文件为空")
+
+        doubao_config = config.get("doubao") if isinstance(config, dict) else {}
+        api_key = normalize_text(doubao_config.get("api_key", ""))
+        base_url = normalize_text(doubao_config.get("base_url", "")).rstrip("/")
+        top_k = int(rag_config.get("top_k", 3))
+        if not api_key or not base_url:
+            raise RuntimeError("doubao 配置缺失")
+
+        endpoint = f"{base_url}/embeddings/multimodal"
+        query_embedding = fetch_query_embedding(_SimpleSession(), endpoint, api_key, user_query)
+        top_rows = collect_ranked_rows(user_query, query_embedding, rows)[:top_k]
+        if not top_rows:
+            raise RuntimeError("未检索到可用 RAG 上下文")
+
+        rag_context = format_context(top_rows).strip()
+        enhanced_prompt = f"""
+{original_prompt}
+
+【用户主题】
+{user_query}
+
+【企业知识库参考内容】
+以下内容来自企业知识库检索结果，请优先吸收其核心观点与逻辑，但不要逐句照抄，也不要机械拼接：
+{rag_context}
+
+【增强输出要求】
+1. 请在保留原有写稿任务要求的前提下，优先吸收上述企业知识库中的核心观点
+2. 强调逻辑清晰、语言专业、适合公众号发布
+3. 可以整合参考知识，但不要生硬照抄
+4. RAG 内容仅作为补充知识上下文，不可脱离用户主题
+""".strip()
+        print("[RAG] enabled")
+        print("[RAG] context built successfully")
+        return enhanced_prompt
+    except Exception as exc:
+        print(f"[RAG] fallback to original prompt: {exc}")
+        return original_prompt
+
+
+def build_prompt(form_data: dict) -> str:
+    original_prompt = _build_original_prompt(form_data)
+    config = load_config()
+    user_query = normalize_text(form_data.get("requirement", "")) or normalize_text(form_data.get("content1", "")) or "新能源行业公众号文章"
+    return build_enhanced_prompt(user_query=user_query, original_prompt_inputs=original_prompt, config=config)

@@ -3,32 +3,29 @@ app:
   debug: true
   host: 0.0.0.0
   port: 5000
-
 doubao:
-  api_key: "51271bc4-601f-4f80-93ba-3725a971b0c1"
-  base_url: "https://ark.cn-beijing.volces.com/api/v3"
-  model: "doubao-1-5-pro-32k-250115"
+  api_key: 51271bc4-601f-4f80-93ba-3725a971b0c1
+  base_url: https://ark.cn-beijing.volces.com/api/v3
+  model: doubao-1-5-pro-32k-250115
   timeout: 60
   temperature: 0.6
   max_tokens: 2000
-
 feishu:
-  app_id: "cli_a922531157ba9bcb"
-  app_secret: "xmubydlGmOkSg2J0XjJybbNf0fHXrNrS"
-  app_token: "UHI4b4izma1E5SsYGP9cQ9KHnXz"
-  table_id: "tblFUuB0ICxpylvM"
-
+  app_id: cli_a922531157ba9bcb
+  app_secret: xmubydlGmOkSg2J0XjJybbNf0fHXrNrS
+  app_token: UHI4b4izma1E5SsYGP9cQ9KHnXz
+  table_id: tblFUuB0ICxpylvM
 paths:
-  logs_dir: "logs"
-  data_dir: "data"
-
+  logs_dir: logs
+  data_dir: data
 rag:
   enabled: true
-  knowledge_base_dir: "knowledge_base/golden_docs"
-  chunk_output_file: "rag_engine/output/rag_data.json"
-
-  # 试点文档（先只做3篇）
+  knowledge_base_dir: knowledge_base/golden_docs
+  chunk_output_file: rag_engine/output/rag_data.json
   pilot_files:
-    - "B01-行业认知-重卡充电基础认知-v1-2026-03-17.md"
-    - "B03-项目规划-场地规划与选址逻辑-v1-2026-03-17.md"
-    - "B07-投资测算-投资成本与收益测算-v1-2026-03-17.md"
+  - B01-行业认知-重卡充电基础认知-v1-2026-03-17.md
+  - B03-项目规划-场地规划与选址逻辑-v1-2026-03-17.md
+  - B07-投资测算-投资成本与收益测算-v1-2026-03-17.md
+  vector_output_file: rag_engine/output/rag_vectors.json
+  top_k: 3
+  endpoint_id: ep-20260322001504-7hlz2

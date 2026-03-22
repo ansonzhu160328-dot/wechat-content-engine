@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
+from urllib import error, request
 
 from search_rag import (
     PROJECT_ROOT,
@@ -15,6 +17,32 @@ from search_rag import (
 
 
 OUTPUT_PATH = (PROJECT_ROOT / "rag_engine" / "output" / "rag_context.txt").resolve()
+
+
+class _SimpleResponse:
+    def __init__(self, status_code: int, body: str):
+        self.status_code = status_code
+        self._body = body
+
+    def raise_for_status(self) -> None:
+        if self.status_code >= 400:
+            raise RuntimeError(self._body)
+
+    def json(self) -> dict[str, object]:
+        return json.loads(self._body)
+
+
+class _SimpleSession:
+    def post(self, url: str, headers: dict[str, str], json: dict[str, object], timeout: int) -> _SimpleResponse:
+        payload = __import__("json").dumps(json).encode("utf-8")
+        req = request.Request(url, data=payload, headers=headers, method="POST")
+        try:
+            with request.urlopen(req, timeout=timeout) as response:
+                body = response.read().decode("utf-8")
+                return _SimpleResponse(response.status, body)
+        except error.HTTPError as exc:
+            body = exc.read().decode("utf-8", errors="replace")
+            return _SimpleResponse(exc.code, body)
 
 
 def format_context(top_rows: list[dict[str, object]]) -> str:
@@ -48,14 +76,9 @@ def main() -> int:
 
     endpoint = f"{base_url}/embeddings/multimodal"
     try:
-        with requests.Session() as session:
-            query_embedding = fetch_query_embedding(session, endpoint, api_key, QUERY)
-    except requests.RequestException as exc:
-        detail = exc.response.text if exc.response is not None else str(exc)
-        print(f"[FAIL] query embedding 调用失败: {detail}")
-        return 1
+        query_embedding = fetch_query_embedding(_SimpleSession(), endpoint, api_key, QUERY)
     except Exception as exc:
-        print(f"[FAIL] query embedding 解析失败: {exc}")
+        print(f"[FAIL] query embedding 获取失败: {exc}")
         return 1
 
     top_rows = collect_ranked_rows(query_embedding, rows)[:TOP_K]

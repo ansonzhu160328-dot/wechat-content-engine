@@ -81,7 +81,7 @@ def main() -> int:
         print(f"[FAIL] query embedding 获取失败: {exc}")
         return 1
 
-    top_rows = collect_ranked_rows(query_embedding, rows)[:TOP_K]
+    top_rows = collect_ranked_rows(QUERY, query_embedding, rows)[:TOP_K]
     if not top_rows:
         print(f"Query: {QUERY}")
         print("[FAIL] 未找到可用检索结果")

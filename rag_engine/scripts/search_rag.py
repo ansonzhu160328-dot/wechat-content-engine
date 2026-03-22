@@ -26,6 +26,9 @@ PREVIEW_LENGTH = 120
 LOW_VALUE_KEYWORDS = ("关键词", "来源信息", "时效性", "禁用/慎用表述")
 SUMMARY_KEYWORDS = ("文档摘要", "适用写作场景")
 CORE_SECTION_MARKERS = ("3.", "3.1", "3.2", "3.3", "3.4", "3.5", "3.6", "3.7", "3.8", "3.9")
+INVESTMENT_QUERY_KEYWORDS = ("投资", "收益", "成本", "回报", "ROI", "回本", "盈利", "测算", "IRR", "CAPEX", "OPEX")
+INVESTMENT_SECTION_KEYWORDS = ("投资", "成本", "收益", "回报", "ROI", "回本", "盈利", "测算")
+B01_FOUNDATION_KEYWORDS = ("定义", "背景", "核心要点")
 
 
 def load_client_config() -> tuple[str, str]:
@@ -117,18 +120,34 @@ def is_low_value_section(section_title: str) -> bool:
     return any(keyword in section_title for keyword in LOW_VALUE_KEYWORDS)
 
 
-def compute_rerank_score(section_title: str, similarity: float) -> float:
+def is_investment_query(query: str) -> bool:
+    upper_query = query.upper()
+    return any(keyword in query or keyword in upper_query for keyword in INVESTMENT_QUERY_KEYWORDS)
+
+
+def compute_rerank_score(query: str, doc_name: str, section_title: str, similarity: float) -> float:
+    rerank_score = similarity
     if section_title.startswith("3.") or any(marker in section_title for marker in CORE_SECTION_MARKERS):
-        return similarity + 0.08
+        rerank_score += 0.08
     if any(keyword in section_title for keyword in SUMMARY_KEYWORDS):
-        return similarity - 0.03
-    return similarity
+        rerank_score -= 0.03
+
+    if is_investment_query(query):
+        if doc_name.startswith("B07"):
+            rerank_score += 0.12
+        if any(keyword in section_title or keyword in section_title.upper() for keyword in INVESTMENT_SECTION_KEYWORDS):
+            rerank_score += 0.05
+        if doc_name.startswith("B01") and any(keyword in section_title for keyword in B01_FOUNDATION_KEYWORDS):
+            rerank_score += 0.0
+
+    return rerank_score
 
 
-def collect_ranked_rows(query_embedding: list[float], rows: list[dict[str, object]]) -> list[dict[str, object]]:
+def collect_ranked_rows(query: str, query_embedding: list[float], rows: list[dict[str, object]]) -> list[dict[str, object]]:
     ranked_rows: list[dict[str, object]] = []
     for row in rows:
         embedding = row.get("embedding")
+        doc_name = str(row.get("doc_name", ""))
         section_title = str(row.get("section_title", ""))
         if not isinstance(embedding, list) or not embedding:
             continue
@@ -141,7 +160,7 @@ def collect_ranked_rows(query_embedding: list[float], rows: list[dict[str, objec
 
         ranked_row = dict(row)
         ranked_row["similarity"] = similarity
-        ranked_row["rerank_score"] = compute_rerank_score(section_title, similarity)
+        ranked_row["rerank_score"] = compute_rerank_score(query, doc_name, section_title, similarity)
         ranked_rows.append(ranked_row)
 
     ranked_rows.sort(key=lambda item: float(item["rerank_score"]), reverse=True)
@@ -173,7 +192,7 @@ def main() -> int:
         print(f"[FAIL] query embedding 解析失败: {exc}")
         return 1
 
-    top_rows = collect_ranked_rows(query_embedding, rows)[:TOP_K]
+    top_rows = collect_ranked_rows(QUERY, query_embedding, rows)[:TOP_K]
     print(f"Query: {QUERY}")
     if not top_rows:
         print("[FAIL] 未找到可用检索结果")
@@ -185,6 +204,7 @@ def main() -> int:
         print("-" * 60)
         print(f"Top {index}")
         print(f"chunk_id: {row.get('chunk_id', '')}")
+        print(f"doc_name: {row.get('doc_name', '')}")
         print(f"doc_title: {row.get('doc_title', '')}")
         print(f"section_title: {row.get('section_title', '')}")
         print(f"similarity: {float(row.get('similarity', 0.0)):.6f}")
